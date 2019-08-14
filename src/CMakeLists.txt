@@ -1,12 +1,15 @@
 add_executable(thesis_demo
-	circular_movement_component.h
+	aesthetic_camera_component.cpp
+	aesthetic_camera_component.h
 	circular_movement_component.cpp
+	circular_movement_component.h
     thesis_demo.cpp
 )
 
 target_link_libraries(thesis_demo
     pixel_engine
     ${OPENGL_LIBRRIES}
+    ceres
     gl3w
     glfw
     gflags

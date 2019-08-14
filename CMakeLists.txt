@@ -8,6 +8,10 @@ find_package(OpenGL REQUIRED)
 # Boost
 find_package(Boost REQUIRED filesystem)
 
+# Ceres
+find_package(Ceres CONFIG REQUIRED)
+include_directories(${CERES_INCLUDE_DIRS})
+
 # Third Party Libraries
 add_definitions(-DImDrawIdx=uint32_t)
 add_definitions(-DIMGUI_DEFINE_MATH_OPERATORS)

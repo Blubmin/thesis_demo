@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
+#include "aesthetic_camera_component.h"
 #include "circular_movement_component.h"
 
 #include <GL/gl3w.h>
@@ -24,19 +25,19 @@
 #include <boost/format.hpp>
 
 namespace {
-  boost::filesystem::path GetResourcePath() {
-    return boost::filesystem::path(__FILE__).parent_path() / "resources";
-  }
-  boost::filesystem::path GetMeshPath(const std::string& mesh_file) {
-    return GetResourcePath() / "meshes" / mesh_file;
-  }
-  boost::filesystem::path GetShaderPath(const std::string& shader_file) {
-    return GetResourcePath() / "shaders" / shader_file;
-  }
+boost::filesystem::path GetResourcePath() {
+  return boost::filesystem::path(__FILE__).parent_path() / "resources";
+}
+boost::filesystem::path GetMeshPath(const std::string& mesh_file) {
+  return GetResourcePath() / "meshes" / mesh_file;
+}
+boost::filesystem::path GetShaderPath(const std::string& shader_file) {
+  return GetResourcePath() / "shaders" / shader_file;
+}
 }  // namespace
 
 class HelloGame : public pxl::Game {
-public:
+ public:
   HelloGame() : pxl::Game("Hello Game") {}
   void Init() override {
     empty = std::make_shared<pxl::Empty>();
@@ -55,21 +56,24 @@ public:
     ground->rotation.x() = -90;
 
     prog = std::shared_ptr<pxl::Program>(new pxl::Program(
-      GetShaderPath("mesh.vert"), GetShaderPath("mesh.frag")));
+        GetShaderPath("mesh.vert"), GetShaderPath("mesh.frag")));
 
     camera = std::make_shared<pxl::Camera>();
     camera->position += Eigen::Vector3f(0, 1, 10);
     camera->AddComponent(std::make_shared<pxl::FreeCameraComponent>());
 
+    aesthetic_camera = std::make_shared<pxl::Camera>();
+    aesthetic_camera->position = camera->position;
+    aesthetic_camera->AddComponent(
+        std::make_shared<AestheticCameraComponent>());
+
     framebuffers =
-      std::make_pair(std::make_shared<pxl::OglFramebuffer>(1920, 1080),
-        std::make_shared<pxl::OglFramebuffer>(1920, 1080));
+        std::make_pair(std::make_shared<pxl::OglFramebuffer>(1920, 1080),
+                       std::make_shared<pxl::OglFramebuffer>(1920, 1080));
     framebuffers.first->Bind();
     framebuffers.second->Bind();
-
-    fxaa_output = std::make_shared<pxl::OglTexture2d>(
-      1920, 1080, pxl::Texture2d::Format::FLOAT);
-    fxaa_output->Bind();
+    viewport_framebuffer = std::make_shared<pxl::OglFramebuffer>(1920, 1080);
+    viewport_framebuffer->Bind();
 
     point_lights.emplace_back(new pxl::PointLight(pxl::Color(1.f, .0f, .0f)));
     point_lights.back()->position += Eigen::Vector3f(4.f, 2.f, 0.f);
@@ -99,7 +103,7 @@ public:
     //    std::make_shared<pxl::PointLight>(pxl::Color(1.f, 1.f, 1.f)));
     // scene->entities.back()->position += Eigen::Vector3f(0.f, 3.f, 0.f);
     scene->entities.insert(scene->entities.end(), point_lights.begin(),
-      point_lights.end());
+                           point_lights.end());
     scene->Bind();
   }
 
@@ -117,23 +121,46 @@ public:
       ImGui::End();
     }
 
+    // Draw scene from primary camera
+    scene->camera = camera;
     pxl::SceneRenderer::RenderScene(*scene);
     framebuffers.first->End();
 
     framebuffers.second->Start();
     pxl::OglGammaRenderer::GetInstance()->RenderTexture(
-      framebuffers.first->GetColorAttachment(0), gamma);
+        framebuffers.first->GetColorAttachment(0), gamma);
     framebuffers.second->End();
 
     pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
-      *framebuffers.second->GetColorAttachment(0));
+        *framebuffers.second->GetColorAttachment(0));
+
+    // Draw scene from aesthetic camera
+    framebuffers.first->Start();
+    scene->camera = aesthetic_camera;
+    pxl::SceneRenderer::RenderScene(*scene);
+    framebuffers.first->End();
+
+    viewport_framebuffer->Start();
+    pxl::OglGammaRenderer::GetInstance()->RenderTexture(
+        framebuffers.first->GetColorAttachment(0), gamma);
+    viewport_framebuffer->End();
+
+    framebuffers.first->Start();
+    pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
+        *viewport_framebuffer->GetColorAttachment(0));
+    framebuffers.first->End();
+
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *framebuffers.first->GetColorAttachment(0),
+        Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98, .285)));
   }
 
   std::pair<std::shared_ptr<pxl::OglFramebuffer>,
-    std::shared_ptr<pxl::OglFramebuffer>>
-    framebuffers;
-  std::shared_ptr<pxl::OglTexture2d> fxaa_output;
+            std::shared_ptr<pxl::OglFramebuffer>>
+      framebuffers;
+  std::shared_ptr<pxl::OglFramebuffer> viewport_framebuffer;
   std::shared_ptr<pxl::Camera> camera;
+  std::shared_ptr<pxl::Camera> aesthetic_camera;
   std::shared_ptr<pxl::Scene> scene;
   std::shared_ptr<pxl::Empty> empty;
   std::shared_ptr<pxl::OglMesh> mesh;
