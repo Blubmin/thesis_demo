@@ -63,6 +63,7 @@ class HelloGame : public pxl::Game {
     camera->AddComponent(std::make_shared<pxl::FreeCameraComponent>());
 
     aesthetic_camera = std::make_shared<pxl::Camera>();
+    aesthetic_camera->fov = 45;
     aesthetic_camera->position = camera->position;
     aesthetic_camera->AddComponent(
         std::make_shared<AestheticCameraComponent>());
