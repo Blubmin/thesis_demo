@@ -65,8 +65,10 @@ class HelloGame : public pxl::Game {
     aesthetic_camera = std::make_shared<pxl::Camera>();
     aesthetic_camera->fov = 45;
     aesthetic_camera->position = camera->position;
-    aesthetic_camera->AddComponent(
-        std::make_shared<AestheticCameraComponent>());
+    auto aesthetic_camera_component =
+        std::make_shared<AestheticCameraComponent>();
+    aesthetic_camera_component->SetTarget(mesh);
+    aesthetic_camera->AddComponent(aesthetic_camera_component);
 
     framebuffers =
         std::make_pair(std::make_shared<pxl::OglFramebuffer>(1920, 1080),
@@ -137,6 +139,7 @@ class HelloGame : public pxl::Game {
 
     // Draw scene from aesthetic camera
     framebuffers.first->Start();
+    aesthetic_camera->Update(time_elapsed);
     scene->camera = aesthetic_camera;
     pxl::SceneRenderer::RenderScene(*scene);
     framebuffers.first->End();
