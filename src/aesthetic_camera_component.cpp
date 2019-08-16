@@ -51,7 +51,6 @@ class AestheticCostFunction {
     residuals[4] = norm_pos[0];
     residuals[5] = norm_pos[1];
 
-    LOG(INFO) << target_pos.head<3>().transpose();
     return true;
   }
 
@@ -107,8 +106,6 @@ void AestheticCameraComponent::Update(float time_elapsed) {
   }
   camera_ptr->position =
       Eigen::Vector3f(parameters[0], parameters[1], parameters[2]);
-  LOG(ERROR) << camera_ptr->position.transpose();
-  LOG(ERROR) << summary.FullReport();
 }
 
 void AestheticCameraComponent::SetTarget(std::weak_ptr<pxl::Entity> target) {

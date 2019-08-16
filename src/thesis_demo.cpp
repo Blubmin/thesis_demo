@@ -40,6 +40,8 @@ class HelloGame : public pxl::Game {
  public:
   HelloGame() : pxl::Game("Hello Game") {}
   void Init() override {
+    main_camera = true;
+
     empty = std::make_shared<pxl::Empty>();
     empty->AddComponent(std::make_shared<CircularMovementComponent>());
 
@@ -121,7 +123,11 @@ class HelloGame : public pxl::Game {
       ImGui::DragFloat3("Rotation", mesh->rotation.data());
       ImGui::DragFloat3("Scale", mesh->scale.data());
       ImGui::DragFloat("Gamma", &gamma, .01f);
-      ImGui::End();
+    }
+    ImGui::End();
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_SLASH)) {
+      main_camera = !main_camera;
     }
 
     // Draw scene from primary camera
@@ -134,31 +140,43 @@ class HelloGame : public pxl::Game {
         framebuffers.first->GetColorAttachment(0), gamma);
     framebuffers.second->End();
 
+    framebuffers.first->Start();
     pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
         *framebuffers.second->GetColorAttachment(0));
+    framebuffers.first->End();
 
     // Draw scene from aesthetic camera
-    framebuffers.first->Start();
+    framebuffers.second->Start();
     aesthetic_camera->Update(time_elapsed);
     scene->camera = aesthetic_camera;
     pxl::SceneRenderer::RenderScene(*scene);
-    framebuffers.first->End();
+    framebuffers.second->End();
 
     viewport_framebuffer->Start();
     pxl::OglGammaRenderer::GetInstance()->RenderTexture(
-        framebuffers.first->GetColorAttachment(0), gamma);
+        framebuffers.second->GetColorAttachment(0), gamma);
     viewport_framebuffer->End();
 
-    framebuffers.first->Start();
+    framebuffers.second->Start();
     pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
-        *viewport_framebuffer->GetColorAttachment(0));
+        *framebuffers.second->GetColorAttachment(0));
     framebuffers.first->End();
 
+    // Draw final results to back buffer
+    std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers.first;
+    std::shared_ptr<pxl::OglFramebuffer> sub_viewport = viewport_framebuffer;
+
+    if (!main_camera) {
+      std::swap(main_viewport, sub_viewport);
+    }
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *framebuffers.first->GetColorAttachment(0),
+        *main_viewport->GetColorAttachment(0));
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *sub_viewport->GetColorAttachment(0),
         Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98, .285)));
   }
 
+  bool main_camera;
   std::pair<std::shared_ptr<pxl::OglFramebuffer>,
             std::shared_ptr<pxl::OglFramebuffer>>
       framebuffers;
