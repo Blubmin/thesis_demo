@@ -100,6 +100,7 @@ class HelloGame : public pxl::Game {
     scene->camera = camera;
     scene->entities.push_back(empty);
     scene->entities.push_back(camera);
+    scene->entities.push_back(aesthetic_camera);
     scene->entities.push_back(mesh);
     scene->entities.push_back(ground);
     scene->entities.push_back(light);
