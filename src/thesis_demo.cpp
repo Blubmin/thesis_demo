@@ -21,6 +21,7 @@
 #include <pixel_engine/program.h>
 #include <pixel_engine/scene.h>
 #include <pixel_engine/scene_renderer.h>
+#include <pixel_engine/sphere.h>
 #include <Eigen/Geometry>
 #include <boost/format.hpp>
 
@@ -96,8 +97,14 @@ class HelloGame : public pxl::Game {
     light2->position += Eigen::Vector3f(1.f, 1.f, 1.f);
     light->AddChild(light2);
 
+    std::shared_ptr<pxl::Mesh> sphere = std::make_shared<pxl::OglMesh>(
+        std::make_shared<pxl::UvSphere>(.5f, 10, 20));
+    sphere->Bind();
+    sphere->position = Eigen::Vector3f(3, .5, 2);
+
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
+    scene->entities.push_back(sphere);
     scene->entities.push_back(empty);
     scene->entities.push_back(camera);
     scene->entities.push_back(aesthetic_camera);
