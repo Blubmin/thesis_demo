@@ -70,7 +70,7 @@ class HelloGame : public pxl::Game {
     aesthetic_camera->position = camera->position;
     auto aesthetic_camera_component =
         std::make_shared<AestheticCameraComponent>();
-    aesthetic_camera_component->SetTarget(mesh);
+    aesthetic_camera_component->SetPlayer(mesh);
     aesthetic_camera->AddComponent(aesthetic_camera_component);
 
     framebuffers =
@@ -101,6 +101,7 @@ class HelloGame : public pxl::Game {
         std::make_shared<pxl::UvSphere>(.5f, 10, 20));
     sphere->Bind();
     sphere->position = Eigen::Vector3f(3, .5, 2);
+    aesthetic_camera_component->SetTarget(sphere);
 
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
