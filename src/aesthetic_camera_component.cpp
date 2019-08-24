@@ -23,7 +23,7 @@ class AestheticCostFunction {
     if (target_ptr == nullptr || player_ptr == nullptr) {
       return false;
     }
-    Eigen::Vector4<T> player_pos = Eigen::Vector4d(0, 0, 0, 1).cast<T>();
+    Eigen::Vector4<T> player_pos = Eigen::Vector4d(0, .5, 0, 1).cast<T>();
     player_pos = player_ptr->GetTransform().cast<T>() * player_pos;
     Eigen::Vector4<T> target_pos = Eigen::Vector4d(0, 0, 0, 1).cast<T>();
     target_pos = target_ptr->GetTransform().cast<T>() * target_pos;
@@ -51,6 +51,8 @@ class AestheticCostFunction {
     }
     Eigen::Vector4<T> norm_target_pos = camera_ptr->GetPerspective().cast<T>() *
                                         camera_T_world.matrix() * target_pos;
+    Eigen::Vector4<T> norm_player_pos = camera_ptr->GetPerspective().cast<T>() *
+                                        camera_T_world.matrix() * player_pos;
 
     Eigen::Vector3<T> position_diff =
         player_pos.head<3>() -
@@ -58,11 +60,13 @@ class AestheticCostFunction {
     residuals[0] = position_diff[0];
     residuals[1] = position_diff[1];
     residuals[2] = position_diff[2];
-
     residuals[3] = ceres::pow(position_diff.norm() - 7.0, 2);
 
-    residuals[4] = norm_target_pos[0];
-    residuals[5] = norm_target_pos[1];
+    residuals[4] = (norm_target_pos[0] / norm_target_pos[3]) - .33;
+    residuals[5] = (norm_target_pos[1] / norm_target_pos[3]) - .33;
+
+    residuals[6] = (norm_player_pos[0] / norm_player_pos[3]) + .33;
+    residuals[7] = (norm_player_pos[1] / norm_player_pos[3]) + .33;
 
     return true;
   }
@@ -70,8 +74,8 @@ class AestheticCostFunction {
   static ceres::CostFunction* Create(std::weak_ptr<pxl::Camera> camera,
                                      std::weak_ptr<pxl::Entity> player,
                                      std::weak_ptr<pxl::Entity> entity) {
-    ceres::AutoDiffCostFunction<AestheticCostFunction, 6, 5>* cost_function =
-        new ceres::AutoDiffCostFunction<AestheticCostFunction, 6, 5>(
+    ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>* cost_function =
+        new ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>(
             new AestheticCostFunction(camera, player, entity));
     return cost_function;
   }
