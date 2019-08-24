@@ -132,6 +132,11 @@ class HelloGame : public pxl::Game {
       ImGui::DragFloat3("Rotation", mesh->rotation.data());
       ImGui::DragFloat3("Scale", mesh->scale.data());
       ImGui::DragFloat("Gamma", &gamma, .01f);
+
+      auto aesthetic_camera_component =
+          aesthetic_camera->GetComponent<AestheticCameraComponent>();
+      ImGui::Checkbox("Disable Player In-Frame Solve",
+                      &aesthetic_camera_component->solve_player);
     }
     ImGui::End();
 

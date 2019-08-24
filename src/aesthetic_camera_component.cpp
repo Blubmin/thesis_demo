@@ -13,8 +13,11 @@ class AestheticCostFunction {
  public:
   AestheticCostFunction(std::weak_ptr<pxl::Camera> camera,
                         std::weak_ptr<pxl::Entity> player,
-                        std::weak_ptr<pxl::Entity> target)
-      : camera(camera), player(player), target(target) {}
+                        std::weak_ptr<pxl::Entity> target, bool solve_player)
+      : camera(camera),
+        player(player),
+        target(target),
+        solve_player_(solve_player) {}
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
@@ -65,18 +68,24 @@ class AestheticCostFunction {
     residuals[4] = (norm_target_pos[0] / norm_target_pos[3]) - .33;
     residuals[5] = (norm_target_pos[1] / norm_target_pos[3]) - .33;
 
-    residuals[6] = (norm_player_pos[0] / norm_player_pos[3]) + .33;
-    residuals[7] = (norm_player_pos[1] / norm_player_pos[3]) + .33;
+    if (solve_player_) {
+      residuals[6] = (norm_player_pos[0] / norm_player_pos[3]) + .33;
+      residuals[7] = (norm_player_pos[1] / norm_player_pos[3]) + .33;
+    } else {
+      residuals[6] = T(0.0);
+      residuals[7] = T(0.0);
+    }
 
     return true;
   }
 
   static ceres::CostFunction* Create(std::weak_ptr<pxl::Camera> camera,
                                      std::weak_ptr<pxl::Entity> player,
-                                     std::weak_ptr<pxl::Entity> entity) {
+                                     std::weak_ptr<pxl::Entity> entity,
+                                     bool solve_player) {
     ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>* cost_function =
         new ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>(
-            new AestheticCostFunction(camera, player, entity));
+            new AestheticCostFunction(camera, player, entity, solve_player));
     return cost_function;
   }
 
@@ -84,9 +93,11 @@ class AestheticCostFunction {
   const std::weak_ptr<pxl::Camera> camera;
   const std::weak_ptr<pxl::Entity> player;
   const std::weak_ptr<pxl::Entity> target;
+
+  bool solve_player_;
 };
 
-AestheticCameraComponent::AestheticCameraComponent() {}
+AestheticCameraComponent::AestheticCameraComponent() : solve_player(true) {}
 
 void AestheticCameraComponent::Update(float time_elapsed) {
   ceres::Problem problem;
@@ -111,7 +122,8 @@ void AestheticCameraComponent::Update(float time_elapsed) {
   parameters[3] = camera_ptr->rotation.x() / 180 * M_PI;
   parameters[4] = camera_ptr->rotation.y() / 180 * M_PI;
 
-  auto cost = AestheticCostFunction::Create(camera_ptr, player_, target_);
+  auto cost =
+      AestheticCostFunction::Create(camera_ptr, player_, target_, solve_player);
   problem.AddResidualBlock(cost, NULL, parameters.data());
 
   ceres::Solver::Options options;
