@@ -3,6 +3,7 @@
 
 #include "aesthetic_camera_component.h"
 #include "circular_movement_component.h"
+#include "planar_movement_component.h"
 
 #include <GL/gl3w.h>
 #include <glog/logging.h>
@@ -101,6 +102,7 @@ class HelloGame : public pxl::Game {
         std::make_shared<pxl::UvSphere>(.5f, 10, 20));
     sphere->Bind();
     sphere->position = Eigen::Vector3f(3, .5, 2);
+    sphere->AddComponent(std::make_shared<PlanarMovementComponent>());
     aesthetic_camera_component->SetTarget(sphere);
 
     scene = std::make_shared<pxl::Scene>();

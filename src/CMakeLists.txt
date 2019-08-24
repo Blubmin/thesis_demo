@@ -3,6 +3,8 @@ add_executable(thesis_demo
 	aesthetic_camera_component.h
 	circular_movement_component.cpp
 	circular_movement_component.h
+	planar_movement_component.cpp
+	planar_movement_component.h
     thesis_demo.cpp
 )
 
