@@ -35,16 +35,10 @@ class AestheticCostFunction {
     Eigen::Quaternion<T> rotation =
         Eigen::AngleAxis<T>(parameters[4], Eigen::Vector3<T>::UnitY()) *
         Eigen::AngleAxis<T>(parameters[3], Eigen::Vector3<T>::UnitX());
-    /*Eigen::Vector3<T> camera_axis(parameters[3], parameters[4],
-    parameters[5]); Eigen::AngleAxis<T> camera_rot(camera_axis.norm(),
-                                   camera_axis.normalized());*/
 
     Eigen::Isometry3<T> camera_T_world = Eigen::Isometry3<T>::Identity();
     camera_T_world.translation() = camera_pos;
     camera_T_world.linear() = rotation.toRotationMatrix();
-    /*camera_T_world.linear() = camera_rot.toRotationMatrix();
-    camera_T_world.linear() = Eigen::Matrix3<T>::Identity();*/
-    // LOG(INFO) << std::endl << camera_T_world.linear();
 
     camera_T_world = camera_T_world.inverse();
 
@@ -69,8 +63,8 @@ class AestheticCostFunction {
     residuals[5] = (norm_target_pos[1] / norm_target_pos[3]) - .33;
 
     if (solve_player_) {
-      residuals[6] = (norm_player_pos[0] / norm_player_pos[3]) + .33;
-      residuals[7] = (norm_player_pos[1] / norm_player_pos[3]) + .33;
+      residuals[6] = ((norm_player_pos[0] / norm_player_pos[3]) + .33) * 5.0;
+      residuals[7] = ((norm_player_pos[1] / norm_player_pos[3]) + .33) * 5.0;
     } else {
       residuals[6] = T(0.0);
       residuals[7] = T(0.0);
@@ -102,23 +96,22 @@ AestheticCameraComponent::AestheticCameraComponent() : solve_player(true) {}
 void AestheticCameraComponent::Update(float time_elapsed) {
   ceres::Problem problem;
 
+  auto player_ptr = player_.lock();
   auto camera_ptr = std::static_pointer_cast<pxl::Camera>(owner.lock());
   std::array<double, 6> parameters;
   Eigen::AngleAxisf rot(camera_ptr->GetTransform().block<3, 3>(0, 0));
   Eigen::Vector3f axis = rot.axis().normalized();
   axis = axis * rot.angle();
-  // parameters[0] = axis.x();
-  // parameters[1] = axis.y();
-  // parameters[2] = axis.z();
-  // parameters[3] = camera_ptr->position.x();
-  // parameters[4] = camera_ptr->position.y();
-  // parameters[5] = camera_ptr->position.z();
+
+  // Improve camera initialization
+  if (prev_player_pos_) {
+    camera_ptr->position += player_ptr->position - prev_player_pos_.get();
+  }
+  prev_player_pos_ = player_ptr->position;
+
   parameters[0] = camera_ptr->position.x();
   parameters[1] = camera_ptr->position.y();
   parameters[2] = camera_ptr->position.z();
-  // parameters[3] = axis.x();
-  // parameters[4] = axis.y();
-  // parameters[5] = axis.z();
   parameters[3] = camera_ptr->rotation.x() / 180 * M_PI;
   parameters[4] = camera_ptr->rotation.y() / 180 * M_PI;
 
@@ -140,6 +133,7 @@ void AestheticCameraComponent::Update(float time_elapsed) {
     LOG(ERROR) << summary.FullReport();
     return;
   }
+  LOG(ERROR) << summary.FullReport();
   camera_ptr->position =
       Eigen::Vector3f(parameters[0], parameters[1], parameters[2]);
   // Eigen::Vector3f rotation_axis(parameters[3], parameters[4], parameters[5]);

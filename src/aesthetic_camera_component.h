@@ -1,5 +1,8 @@
 #include <pixel_engine/component.h>
 
+#include <Eigen/Core>
+#include <boost/optional.hpp>
+
 class AestheticCameraComponent : public pxl::Component {
  public:
   AestheticCameraComponent();
@@ -13,4 +16,6 @@ class AestheticCameraComponent : public pxl::Component {
  private:
   std::weak_ptr<pxl::Entity> player_;
   std::weak_ptr<pxl::Entity> target_;
+
+  boost::optional<Eigen::Vector3f> prev_player_pos_;
 };
