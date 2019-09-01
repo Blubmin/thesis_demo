@@ -1,5 +1,7 @@
 #include <pixel_engine/component.h>
 
+#include <vector>
+
 #include <Eigen/Core>
 #include <boost/optional.hpp>
 
@@ -11,7 +13,7 @@ class AestheticCameraComponent : public pxl::Component {
   void SetTarget(std::weak_ptr<pxl::Entity> target);
   void SetPlayer(std::weak_ptr<pxl::Entity> player);
 
-  bool solve_player;
+  std::vector<bool> constant_residuals;
 
  private:
   std::weak_ptr<pxl::Entity> player_;

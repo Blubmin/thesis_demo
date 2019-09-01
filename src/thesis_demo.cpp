@@ -137,8 +137,15 @@ class HelloGame : public pxl::Game {
 
       auto aesthetic_camera_component =
           aesthetic_camera->GetComponent<AestheticCameraComponent>();
-      ImGui::Checkbox("Disable Player In-Frame Solve",
-                      &aesthetic_camera_component->solve_player);
+      for (int i = 0; i < aesthetic_camera_component->constant_residuals.size();
+           ++i) {
+        boost::format label("Residual %d");
+        label % i;
+        bool val = aesthetic_camera_component->constant_residuals[i];
+        if (ImGui::Checkbox(label.str().c_str(), &val)) {
+          aesthetic_camera_component->constant_residuals[i] = val;
+        }
+      }
     }
     ImGui::End();
 

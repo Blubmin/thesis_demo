@@ -13,11 +13,12 @@ class AestheticCostFunction {
  public:
   AestheticCostFunction(std::weak_ptr<pxl::Camera> camera,
                         std::weak_ptr<pxl::Entity> player,
-                        std::weak_ptr<pxl::Entity> target, bool solve_player)
+                        std::weak_ptr<pxl::Entity> target,
+                        std::vector<bool> constant_residuals)
       : camera(camera),
         player(player),
         target(target),
-        solve_player_(solve_player) {}
+        constant_residuals_(constant_residuals) {}
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
@@ -62,12 +63,13 @@ class AestheticCostFunction {
     residuals[4] = (norm_target_pos[0] / norm_target_pos[3]) - .33;
     residuals[5] = (norm_target_pos[1] / norm_target_pos[3]) - .33;
 
-    if (solve_player_) {
-      residuals[6] = ((norm_player_pos[0] / norm_player_pos[3]) + .33) * 5.0;
-      residuals[7] = ((norm_player_pos[1] / norm_player_pos[3]) + .33) * 5.0;
-    } else {
-      residuals[6] = T(0.0);
-      residuals[7] = T(0.0);
+    residuals[6] = ((norm_player_pos[0] / norm_player_pos[3]) + .33) * 5.0;
+    residuals[7] = ((norm_player_pos[1] / norm_player_pos[3]) + .33) * 5.0;
+
+    for (int i = 0; i < constant_residuals_.size(); ++i) {
+      if (constant_residuals_[i]) {
+        residuals[i] = T(0.0);
+      }
     }
 
     return true;
@@ -76,10 +78,11 @@ class AestheticCostFunction {
   static ceres::CostFunction* Create(std::weak_ptr<pxl::Camera> camera,
                                      std::weak_ptr<pxl::Entity> player,
                                      std::weak_ptr<pxl::Entity> entity,
-                                     bool solve_player) {
+                                     std::vector<bool> constant_parameters) {
     ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>* cost_function =
         new ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>(
-            new AestheticCostFunction(camera, player, entity, solve_player));
+            new AestheticCostFunction(camera, player, entity,
+                                      constant_parameters));
     return cost_function;
   }
 
@@ -88,22 +91,26 @@ class AestheticCostFunction {
   const std::weak_ptr<pxl::Entity> player;
   const std::weak_ptr<pxl::Entity> target;
 
-  bool solve_player_;
+  std::vector<bool> constant_residuals_;
 };
 
-AestheticCameraComponent::AestheticCameraComponent() : solve_player(true) {}
+AestheticCameraComponent::AestheticCameraComponent() : constant_residuals(8) {
+  for (auto& val : constant_residuals) {
+    val = false;
+  }
+}
 
 void AestheticCameraComponent::Update(float time_elapsed) {
   ceres::Problem problem;
 
   auto player_ptr = player_.lock();
   auto camera_ptr = std::static_pointer_cast<pxl::Camera>(owner.lock());
-  std::array<double, 6> parameters;
+  std::array<double, 5> parameters;
   Eigen::AngleAxisf rot(camera_ptr->GetTransform().block<3, 3>(0, 0));
   Eigen::Vector3f axis = rot.axis().normalized();
   axis = axis * rot.angle();
 
-  // Improve camera initialization
+  // Improve camera initialization by adding in player shift
   if (prev_player_pos_) {
     camera_ptr->position += player_ptr->position - prev_player_pos_.get();
   }
@@ -115,8 +122,8 @@ void AestheticCameraComponent::Update(float time_elapsed) {
   parameters[3] = camera_ptr->rotation.x() / 180 * M_PI;
   parameters[4] = camera_ptr->rotation.y() / 180 * M_PI;
 
-  auto cost =
-      AestheticCostFunction::Create(camera_ptr, player_, target_, solve_player);
+  auto cost = AestheticCostFunction::Create(camera_ptr, player_, target_,
+                                            constant_residuals);
   problem.AddResidualBlock(cost, NULL, parameters.data());
 
   ceres::Solver::Options options;
@@ -134,11 +141,12 @@ void AestheticCameraComponent::Update(float time_elapsed) {
     return;
   }
   LOG(ERROR) << summary.FullReport();
+
+  // Set the camera position to the solved position
   camera_ptr->position =
       Eigen::Vector3f(parameters[0], parameters[1], parameters[2]);
-  // Eigen::Vector3f rotation_axis(parameters[3], parameters[4], parameters[5]);
-  // Eigen::AngleAxisf rotation(rotation_axis.norm(),
-  // rotation_axis.normalized());
+
+  // Set the camera rotation to the solved rotations
   camera_ptr->rotation.x() = parameters[3] / M_PI * 180.f;
   camera_ptr->rotation.y() = parameters[4] / M_PI * 180.f;
 }
