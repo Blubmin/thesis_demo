@@ -14,6 +14,7 @@ class AestheticCameraComponent : public pxl::Component {
   void SetPlayer(std::weak_ptr<pxl::Entity> player);
 
   std::vector<bool> constant_residuals;
+  std::vector<bool> constant_parameters;
 
  private:
   std::weak_ptr<pxl::Entity> player_;

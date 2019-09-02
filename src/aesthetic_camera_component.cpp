@@ -21,7 +21,9 @@ class AestheticCostFunction {
         constant_residuals_(constant_residuals) {}
 
   template <typename T>
-  bool operator()(const T* const parameters, T* residuals) const {
+  bool operator()(const T* const x, const T* const y, const T* const z,
+                  const T* const pitch, const T* const yaw,
+                  T* residuals) const {
     const auto player_ptr = player.lock();
     const auto target_ptr = target.lock();
     if (target_ptr == nullptr || player_ptr == nullptr) {
@@ -32,10 +34,10 @@ class AestheticCostFunction {
     Eigen::Vector4<T> target_pos = Eigen::Vector4d(0, 0, 0, 1).cast<T>();
     target_pos = target_ptr->GetTransform().cast<T>() * target_pos;
 
-    Eigen::Vector3<T> camera_pos(parameters[0], parameters[1], parameters[2]);
+    Eigen::Vector3<T> camera_pos(*x, *y, *z);
     Eigen::Quaternion<T> rotation =
-        Eigen::AngleAxis<T>(parameters[4], Eigen::Vector3<T>::UnitY()) *
-        Eigen::AngleAxis<T>(parameters[3], Eigen::Vector3<T>::UnitX());
+        Eigen::AngleAxis<T>(*yaw, Eigen::Vector3<T>::UnitY()) *
+        Eigen::AngleAxis<T>(*pitch, Eigen::Vector3<T>::UnitX());
 
     Eigen::Isometry3<T> camera_T_world = Eigen::Isometry3<T>::Identity();
     camera_T_world.translation() = camera_pos;
@@ -52,9 +54,7 @@ class AestheticCostFunction {
     Eigen::Vector4<T> norm_player_pos = camera_ptr->GetPerspective().cast<T>() *
                                         camera_T_world.matrix() * player_pos;
 
-    Eigen::Vector3<T> position_diff =
-        player_pos.head<3>() -
-        Eigen::Vector3<T>(parameters[0], parameters[1], parameters[2]);
+    Eigen::Vector3<T> position_diff = player_pos.head<3>() - camera_pos;
     residuals[0] = position_diff[0];
     residuals[1] = position_diff[1];
     residuals[2] = position_diff[2];
@@ -65,6 +65,16 @@ class AestheticCostFunction {
 
     residuals[6] = ((norm_player_pos[0] / norm_player_pos[3]) + .33) * 5.0;
     residuals[7] = ((norm_player_pos[1] / norm_player_pos[3]) + .33) * 5.0;
+
+    if (norm_target_pos[2] < 0.0) {
+      residuals[4] = T(100.0);
+      residuals[5] = T(100.0);
+    }
+
+    if (norm_player_pos[2] < 0.0) {
+      residuals[6] = T(100.0);
+      residuals[7] = T(100.0);
+    }
 
     for (int i = 0; i < constant_residuals_.size(); ++i) {
       if (constant_residuals_[i]) {
@@ -79,10 +89,11 @@ class AestheticCostFunction {
                                      std::weak_ptr<pxl::Entity> player,
                                      std::weak_ptr<pxl::Entity> entity,
                                      std::vector<bool> constant_parameters) {
-    ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>* cost_function =
-        new ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 5>(
-            new AestheticCostFunction(camera, player, entity,
-                                      constant_parameters));
+    ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 1, 1, 1, 1, 1>*
+        cost_function =
+            new ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 1, 1, 1,
+                                            1, 1>(new AestheticCostFunction(
+                camera, player, entity, constant_parameters));
     return cost_function;
   }
 
@@ -94,8 +105,13 @@ class AestheticCostFunction {
   std::vector<bool> constant_residuals_;
 };
 
-AestheticCameraComponent::AestheticCameraComponent() : constant_residuals(8) {
+AestheticCameraComponent::AestheticCameraComponent()
+    : constant_residuals(8), constant_parameters(5) {
   for (auto& val : constant_residuals) {
+    val = false;
+  }
+
+  for (auto& val : constant_parameters) {
     val = false;
   }
 }
@@ -124,7 +140,18 @@ void AestheticCameraComponent::Update(float time_elapsed) {
 
   auto cost = AestheticCostFunction::Create(camera_ptr, player_, target_,
                                             constant_residuals);
-  problem.AddResidualBlock(cost, NULL, parameters.data());
+  problem.AddResidualBlock(cost, NULL, parameters.data(), parameters.data() + 1,
+                           parameters.data() + 2, parameters.data() + 3,
+                           parameters.data() + 4);
+  problem.SetParameterLowerBound(parameters.data() + 3, 0, -M_PI_2);
+  problem.SetParameterUpperBound(parameters.data() + 3, 0, M_PI_2);
+
+  for (int i = 0; i < constant_parameters.size(); ++i) {
+    const auto val = constant_parameters[i];
+    if (val) {
+      problem.SetParameterBlockConstant(parameters.data() + i);
+    }
+  }
 
   ceres::Solver::Options options;
   options.num_threads = 12;
@@ -140,7 +167,6 @@ void AestheticCameraComponent::Update(float time_elapsed) {
     LOG(ERROR) << summary.FullReport();
     return;
   }
-  LOG(ERROR) << summary.FullReport();
 
   // Set the camera position to the solved position
   camera_ptr->position =

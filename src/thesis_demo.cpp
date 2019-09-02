@@ -135,6 +135,7 @@ class HelloGame : public pxl::Game {
       ImGui::DragFloat3("Scale", mesh->scale.data());
       ImGui::DragFloat("Gamma", &gamma, .01f);
 
+      // Draw checkboxes to disable residuals
       auto aesthetic_camera_component =
           aesthetic_camera->GetComponent<AestheticCameraComponent>();
       for (int i = 0; i < aesthetic_camera_component->constant_residuals.size();
@@ -144,6 +145,17 @@ class HelloGame : public pxl::Game {
         bool val = aesthetic_camera_component->constant_residuals[i];
         if (ImGui::Checkbox(label.str().c_str(), &val)) {
           aesthetic_camera_component->constant_residuals[i] = val;
+        }
+      }
+
+      // Draw checkboxes to disable parameters
+      for (int i = 0;
+           i < aesthetic_camera_component->constant_parameters.size(); ++i) {
+        boost::format label("Parameter %d");
+        label % i;
+        bool val = aesthetic_camera_component->constant_parameters[i];
+        if (ImGui::Checkbox(label.str().c_str(), &val)) {
+          aesthetic_camera_component->constant_parameters[i] = val;
         }
       }
     }
