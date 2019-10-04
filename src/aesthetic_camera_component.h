@@ -1,3 +1,4 @@
+#pragma once
 #include <pixel_engine/component.h>
 
 #include <vector>
