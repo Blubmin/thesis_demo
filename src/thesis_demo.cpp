@@ -56,7 +56,7 @@ class HelloGame : public pxl::Game {
     ground = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(GetMeshPath("plane.obj"));
     ground->Bind();
     ground->position -= Eigen::Vector3f(0.f, 0.01f, 0.f);
-    ground->scale = Eigen::Vector3f(10.f, 10.f, 10.f);
+    ground->scale = Eigen::Vector3f(50.f, 50.f, 1.f);
     ground->rotation.x() = -90;
 
     prog = std::shared_ptr<pxl::Program>(new pxl::Program(
@@ -72,7 +72,7 @@ class HelloGame : public pxl::Game {
     auto aesthetic_camera_component =
         std::make_shared<AestheticCameraComponent>();
     aesthetic_camera_component->SetPlayer(mesh);
-    aesthetic_camera->AddComponent(aesthetic_camera_component);
+    // aesthetic_camera->AddComponent(aesthetic_camera_component);
 
     framebuffers =
         std::make_pair(std::make_shared<pxl::OglFramebuffer>(1920, 1080),
@@ -98,10 +98,12 @@ class HelloGame : public pxl::Game {
     light2->position += Eigen::Vector3f(1.f, 1.f, 1.f);
     light->AddChild(light2);
 
-    std::shared_ptr<pxl::Mesh> sphere = std::make_shared<pxl::OglMesh>(
-        std::make_shared<pxl::UvSphere>(.5f, 10, 20));
+    std::shared_ptr<pxl::Mesh> sphere = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
+        GetMeshPath("army_man_standing_scaled.obj"));
+    // std::shared_ptr<pxl::Mesh> sphere = std::make_shared<pxl::OglMesh>(
+    //    std::make_shared<pxl::UvSphere>(.5f, 10, 20));
     sphere->Bind();
-    sphere->position = Eigen::Vector3f(3, .5, 2);
+    sphere->position = Eigen::Vector3f(3, 0, 2);
     sphere->AddComponent(std::make_shared<PlanarMovementComponent>());
     aesthetic_camera_component->SetTarget(sphere);
 
@@ -111,7 +113,7 @@ class HelloGame : public pxl::Game {
     scene->entities.push_back(empty);
     scene->entities.push_back(camera);
     scene->entities.push_back(aesthetic_camera);
-    scene->entities.push_back(mesh);
+    // scene->entities.push_back(mesh);
     scene->entities.push_back(ground);
     scene->entities.push_back(light);
     scene->entities.push_back(light2);
@@ -138,24 +140,26 @@ class HelloGame : public pxl::Game {
       // Draw checkboxes to disable residuals
       auto aesthetic_camera_component =
           aesthetic_camera->GetComponent<AestheticCameraComponent>();
-      for (int i = 0; i < aesthetic_camera_component->constant_residuals.size();
-           ++i) {
-        boost::format label("Residual %d");
-        label % i;
-        bool val = aesthetic_camera_component->constant_residuals[i];
-        if (ImGui::Checkbox(label.str().c_str(), &val)) {
-          aesthetic_camera_component->constant_residuals[i] = val;
+      if (aesthetic_camera_component != nullptr) {
+        for (int i = 0;
+             i < aesthetic_camera_component->constant_residuals.size(); ++i) {
+          boost::format label("Residual %d");
+          label % i;
+          bool val = aesthetic_camera_component->constant_residuals[i];
+          if (ImGui::Checkbox(label.str().c_str(), &val)) {
+            aesthetic_camera_component->constant_residuals[i] = val;
+          }
         }
-      }
 
-      // Draw checkboxes to disable parameters
-      for (int i = 0;
-           i < aesthetic_camera_component->constant_parameters.size(); ++i) {
-        boost::format label("Parameter %d");
-        label % i;
-        bool val = aesthetic_camera_component->constant_parameters[i];
-        if (ImGui::Checkbox(label.str().c_str(), &val)) {
-          aesthetic_camera_component->constant_parameters[i] = val;
+        // Draw checkboxes to disable parameters
+        for (int i = 0;
+             i < aesthetic_camera_component->constant_parameters.size(); ++i) {
+          boost::format label("Parameter %d");
+          label % i;
+          bool val = aesthetic_camera_component->constant_parameters[i];
+          if (ImGui::Checkbox(label.str().c_str(), &val)) {
+            aesthetic_camera_component->constant_parameters[i] = val;
+          }
         }
       }
     }
@@ -194,7 +198,7 @@ class HelloGame : public pxl::Game {
 
     framebuffers.second->Start();
     pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
-        *framebuffers.second->GetColorAttachment(0));
+        *viewport_framebuffer->GetColorAttachment(0));
     framebuffers.first->End();
 
     // Draw final results to back buffer
@@ -206,6 +210,7 @@ class HelloGame : public pxl::Game {
     }
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *main_viewport->GetColorAttachment(0));
+
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *sub_viewport->GetColorAttachment(0),
         Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98, .285)));
@@ -224,9 +229,15 @@ class HelloGame : public pxl::Game {
   std::shared_ptr<pxl::OglMesh> ground;
   std::shared_ptr<pxl::Program> prog;
   std::vector<std::shared_ptr<pxl::PointLight>> point_lights;
+
+  std::shared_ptr<pxl::OglTexture2d> test_image;
 };
 
 int main(int argc, char* argv[]) {
+  // cimg_library::CImg<float> image(
+  //    "C:\\Users\\Ian\\Projects\\thesis_demo\\src\\resources\\meshes\\bunny."
+  //    "png");
+  // cimg_library::CImgDisplay main_disp(image, "Click a point");
   FLAGS_logtostderr = true;
   google::InitGoogleLogging(argv[0]);
   HelloGame game;
