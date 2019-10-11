@@ -2,6 +2,7 @@
 #include <cmath>
 
 #include "aesthetic_camera_component.h"
+#include "ai_manager.h"
 #include "circular_movement_component.h"
 #include "planar_movement_component.h"
 
@@ -47,13 +48,15 @@ class HelloGame : public pxl::Game {
     empty = std::make_shared<pxl::Empty>();
     empty->AddComponent(std::make_shared<CircularMovementComponent>());
 
-    mesh = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(GetMeshPath("bunny.obj"));
+    mesh =
+        pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(GetMeshPath("bunny.obj"));
     mesh->position = Eigen::Vector3f(-5.0, 0, 0);
     mesh->rotation.y() = 90;
     mesh->Bind();
     empty->AddChild(mesh);
 
-    ground = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(GetMeshPath("plane.obj"));
+    ground =
+        pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(GetMeshPath("plane.obj"));
     ground->Bind();
     ground->position -= Eigen::Vector3f(0.f, 0.01f, 0.f);
     ground->scale = Eigen::Vector3f(50.f, 50.f, 1.f);
@@ -98,8 +101,9 @@ class HelloGame : public pxl::Game {
     light2->position += Eigen::Vector3f(1.f, 1.f, 1.f);
     light->AddChild(light2);
 
-    std::shared_ptr<pxl::Mesh> sphere = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
-        GetMeshPath("army_man_standing_scaled.obj"));
+    std::shared_ptr<pxl::MeshEntity> sphere =
+        pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+            GetMeshPath("army_man_standing_scaled.obj"));
     // std::shared_ptr<pxl::Mesh> sphere = std::make_shared<pxl::OglMesh>(
     //    std::make_shared<pxl::UvSphere>(.5f, 10, 20));
     sphere->Bind();
@@ -123,10 +127,13 @@ class HelloGame : public pxl::Game {
     scene->entities.insert(scene->entities.end(), point_lights.begin(),
                            point_lights.end());
     scene->Bind();
+
+    ai_manager = std::make_shared<AiManager>(scene, sphere);
   }
 
   void Update(float time_elapsed) override {
     static float gamma = 2.2f;
+    ai_manager->Update(time_elapsed);
     scene->Update(time_elapsed);
     framebuffers.first->Start();
     // prog->Bind();
@@ -225,12 +232,12 @@ class HelloGame : public pxl::Game {
   std::shared_ptr<pxl::Camera> aesthetic_camera;
   std::shared_ptr<pxl::Scene> scene;
   std::shared_ptr<pxl::Empty> empty;
-  std::shared_ptr<pxl::OglMesh> mesh;
-  std::shared_ptr<pxl::OglMesh> ground;
+  std::shared_ptr<pxl::MeshEntity> mesh;
+  std::shared_ptr<pxl::MeshEntity> ground;
   std::shared_ptr<pxl::Program> prog;
   std::vector<std::shared_ptr<pxl::PointLight>> point_lights;
 
-  std::shared_ptr<pxl::OglTexture2d> test_image;
+  std::shared_ptr<AiManager> ai_manager;
 };
 
 int main(int argc, char* argv[]) {

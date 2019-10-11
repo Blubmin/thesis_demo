@@ -1,6 +1,8 @@
 add_executable(thesis_demo
 	aesthetic_camera_component.cpp
 	aesthetic_camera_component.h
+	ai_manager.cpp
+	ai_manager.h
 	circular_movement_component.cpp
 	circular_movement_component.h
 	planar_movement_component.cpp
