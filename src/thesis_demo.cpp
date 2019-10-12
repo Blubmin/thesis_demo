@@ -10,6 +10,7 @@
 #include <glog/logging.h>
 #include <imgui/imgui.h>
 #include <pixel_engine/camera.h>
+#include <pixel_engine/directional_light.h>
 #include <pixel_engine/empty.h>
 #include <pixel_engine/free_camera_component.h>
 #include <pixel_engine/game.h>
@@ -102,6 +103,9 @@ class HelloGame : public pxl::Game {
     light2->position += Eigen::Vector3f(1.f, 1.f, 1.f);
     light->AddChild(light2);
 
+    auto dir_light =
+        std::make_shared<pxl::DirectionalLight>(Eigen::Vector3f(1, -1, 1));
+
     std::shared_ptr<pxl::MeshEntity> sphere =
         pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
             GetMeshPath("army_man_standing_scaled.obj"));
@@ -122,6 +126,7 @@ class HelloGame : public pxl::Game {
     scene->entities.push_back(ground);
     scene->entities.push_back(light);
     scene->entities.push_back(light2);
+    scene->entities.push_back(dir_light);
     // scene->entities.push_back(
     //    std::make_shared<pxl::PointLight>(pxl::Color(1.f, 1.f, 1.f)));
     // scene->entities.back()->position += Eigen::Vector3f(0.f, 3.f, 0.f);
@@ -142,12 +147,19 @@ class HelloGame : public pxl::Game {
     scene->Update(time_elapsed);
     framebuffers.first->Start();
     // prog->Bind();
-
     if (ImGui::Begin("Property")) {
       ImGui::DragFloat3("Position", mesh->position.data());
       ImGui::DragFloat3("Rotation", mesh->rotation.data());
       ImGui::DragFloat3("Scale", mesh->scale.data());
       ImGui::DragFloat("Gamma", &gamma, .01f);
+
+      ImGui::Separator();
+      auto dir_light = scene->GetEntity<pxl::DirectionalLight>();
+      ImGui::TextUnformatted("Directional Light");
+      ImGui::DragFloat3("Direction", dir_light->direction.data());
+      ImGui::DragFloat("Strength", &dir_light->strength);
+      ImGui::ColorEdit3("Color", dir_light->color.data());
+      ImGui::Separator();
 
       // Draw checkboxes to disable residuals
       auto aesthetic_camera_component =
@@ -186,16 +198,6 @@ class HelloGame : public pxl::Game {
     pxl::SceneRenderer::RenderScene(*scene);
     framebuffers.first->End();
 
-    framebuffers.second->Start();
-    pxl::OglGammaRenderer::GetInstance()->RenderTexture(
-        framebuffers.first->GetColorAttachment(0), gamma);
-    framebuffers.second->End();
-
-    framebuffers.first->Start();
-    pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
-        *framebuffers.second->GetColorAttachment(0));
-    framebuffers.first->End();
-
     // Draw scene from aesthetic camera
     framebuffers.second->Start();
     aesthetic_camera->Update(time_elapsed);
@@ -203,19 +205,14 @@ class HelloGame : public pxl::Game {
     pxl::SceneRenderer::RenderScene(*scene);
     framebuffers.second->End();
 
-    viewport_framebuffer->Start();
-    pxl::OglGammaRenderer::GetInstance()->RenderTexture(
-        framebuffers.second->GetColorAttachment(0), gamma);
-    viewport_framebuffer->End();
-
-    framebuffers.second->Start();
-    pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
-        *viewport_framebuffer->GetColorAttachment(0));
-    framebuffers.first->End();
+    // viewport_framebuffer->Start();
+    // pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
+    //     *framebuffers.second->GetColorAttachment(0));
+    // viewport_framebuffer->End();
 
     // Draw final results to back buffer
     std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers.first;
-    std::shared_ptr<pxl::OglFramebuffer> sub_viewport = viewport_framebuffer;
+    std::shared_ptr<pxl::OglFramebuffer> sub_viewport = framebuffers.second;
 
     if (!main_camera) {
       std::swap(main_viewport, sub_viewport);
