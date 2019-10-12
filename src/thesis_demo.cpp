@@ -23,6 +23,7 @@
 #include <pixel_engine/program.h>
 #include <pixel_engine/scene.h>
 #include <pixel_engine/scene_renderer.h>
+#include <pixel_engine/skybox.h>
 #include <pixel_engine/sphere.h>
 #include <Eigen/Geometry>
 #include <boost/format.hpp>
@@ -126,6 +127,10 @@ class HelloGame : public pxl::Game {
     // scene->entities.back()->position += Eigen::Vector3f(0.f, 3.f, 0.f);
     scene->entities.insert(scene->entities.end(), point_lights.begin(),
                            point_lights.end());
+    auto skybox_mesh = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
+        GetMeshPath("skybox/skybox.obj"));
+    skybox_mesh->Bind();
+    scene->skybox = std::make_shared<pxl::Skybox>(skybox_mesh);
     scene->Bind();
 
     ai_manager = std::make_shared<AiManager>(scene, sphere);
@@ -241,10 +246,6 @@ class HelloGame : public pxl::Game {
 };
 
 int main(int argc, char* argv[]) {
-  // cimg_library::CImg<float> image(
-  //    "C:\\Users\\Ian\\Projects\\thesis_demo\\src\\resources\\meshes\\bunny."
-  //    "png");
-  // cimg_library::CImgDisplay main_disp(image, "Click a point");
   FLAGS_logtostderr = true;
   google::InitGoogleLogging(argv[0]);
   HelloGame game;
