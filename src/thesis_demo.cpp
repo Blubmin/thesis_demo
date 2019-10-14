@@ -9,6 +9,7 @@
 #include <GL/gl3w.h>
 #include <glog/logging.h>
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <pixel_engine/camera.h>
 #include <pixel_engine/directional_light.h>
 #include <pixel_engine/empty.h>
@@ -157,7 +158,7 @@ class HelloGame : public pxl::Game {
       auto dir_light = scene->GetEntity<pxl::DirectionalLight>();
       ImGui::TextUnformatted("Directional Light");
       ImGui::DragFloat3("Direction", dir_light->direction.data());
-      ImGui::DragFloat("Strength", &dir_light->strength);
+      ImGui::DragFloat("Strength", &dir_light->strength, .01f, 0.f, 100.f);
       ImGui::ColorEdit3("Color", dir_light->color.data());
       ImGui::Separator();
 
@@ -195,15 +196,15 @@ class HelloGame : public pxl::Game {
 
     // Draw scene from primary camera
     scene->camera = camera;
-    pxl::SceneRenderer::RenderScene(*scene);
+    pxl::SceneRenderer::RenderScene(*scene, framebuffers.first);
     framebuffers.first->End();
 
     // Draw scene from aesthetic camera
-    framebuffers.second->Start();
-    aesthetic_camera->Update(time_elapsed);
-    scene->camera = aesthetic_camera;
-    pxl::SceneRenderer::RenderScene(*scene);
-    framebuffers.second->End();
+    // framebuffers.second->Start();
+    // aesthetic_camera->Update(time_elapsed);
+    // scene->camera = aesthetic_camera;
+    // pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
+    // framebuffers.second->End();
 
     // viewport_framebuffer->Start();
     // pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
@@ -217,12 +218,30 @@ class HelloGame : public pxl::Game {
     if (!main_camera) {
       std::swap(main_viewport, sub_viewport);
     }
-    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *main_viewport->GetColorAttachment(0));
+
+    // auto mouse_pos =
+    //    ImGui::GetMousePos() *
+    //    ImVec2(
+    //        pxl::SceneRenderer::g_buffer_->GetColorAttachment(0)->GetWidth(),
+    //        pxl::SceneRenderer::g_buffer_->GetColorAttachment(0)->GetHeight())
+    //        /
+    //    ImVec2(pxl::Game::State.window_width, pxl::Game::State.window_height);
+    // mouse_pos.y =
+    //    pxl::SceneRenderer::g_buffer_->GetColorAttachment(0)->GetHeight() -
+    //    mouse_pos.y;
+
+    // auto pixel =
+    //    pxl::SceneRenderer::g_buffer_->ReadPixel(mouse_pos.x, mouse_pos.y);
+    // ImGui::BeginTooltip();
+    // ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(),
+    // pixel.w()); ImGui::EndTooltip();
 
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98, .285)));
+        *main_viewport->GetColorAttachment(0));
+    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+    //     *sub_viewport->GetColorAttachment(0),
+    //     Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98,
+    //     .285)));
   }
 
   bool main_camera;
