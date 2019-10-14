@@ -146,7 +146,7 @@ class HelloGame : public pxl::Game {
     static float gamma = 2.2f;
     ai_manager->Update(time_elapsed);
     scene->Update(time_elapsed);
-    framebuffers.first->Start();
+    framebuffers.first->Begin();
     // prog->Bind();
     if (ImGui::Begin("Property")) {
       ImGui::DragFloat3("Position", mesh->position.data());
@@ -200,16 +200,11 @@ class HelloGame : public pxl::Game {
     framebuffers.first->End();
 
     // Draw scene from aesthetic camera
-    // framebuffers.second->Start();
-    // aesthetic_camera->Update(time_elapsed);
-    // scene->camera = aesthetic_camera;
-    // pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
-    // framebuffers.second->End();
-
-    // viewport_framebuffer->Start();
-    // pxl::OglFxaaRenderer::GetInstance()->RenderTexture(
-    //     *framebuffers.second->GetColorAttachment(0));
-    // viewport_framebuffer->End();
+    framebuffers.second->Begin();
+    aesthetic_camera->Update(time_elapsed);
+    scene->camera = aesthetic_camera;
+    pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
+    framebuffers.second->End();
 
     // Draw final results to back buffer
     std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers.first;
@@ -219,29 +214,30 @@ class HelloGame : public pxl::Game {
       std::swap(main_viewport, sub_viewport);
     }
 
-    // auto mouse_pos =
-    //    ImGui::GetMousePos() *
-    //    ImVec2(
-    //        pxl::SceneRenderer::g_buffer_->GetColorAttachment(0)->GetWidth(),
-    //        pxl::SceneRenderer::g_buffer_->GetColorAttachment(0)->GetHeight())
-    //        /
-    //    ImVec2(pxl::Game::State.window_width, pxl::Game::State.window_height);
-    // mouse_pos.y =
-    //    pxl::SceneRenderer::g_buffer_->GetColorAttachment(0)->GetHeight() -
-    //    mouse_pos.y;
+    auto mouse_pos =
+        ImGui::GetMousePos() *
+        ImVec2(
+            pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0)->GetWidth(),
+            pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0)
+                ->GetHeight()) /
+        ImVec2(pxl::Game::State.window_width, pxl::Game::State.window_height);
+    mouse_pos.y =
+        pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0)->GetHeight() -
+        mouse_pos.y;
 
-    // auto pixel =
-    //    pxl::SceneRenderer::g_buffer_->ReadPixel(mouse_pos.x, mouse_pos.y);
-    // ImGui::BeginTooltip();
-    // ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(),
-    // pixel.w()); ImGui::EndTooltip();
+    auto pixel =
+        pxl::SceneRenderer::ssao_buffer_->ReadPixel(mouse_pos.x, mouse_pos.y);
+    ImGui::BeginTooltip();
+    ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(), pixel.w());
+    ImGui::EndTooltip();
 
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *main_viewport->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //     *sub_viewport->GetColorAttachment(0),
-    //     Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98,
-    //     .285)));
+    //     *pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0));
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *sub_viewport->GetColorAttachment(0),
+        Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98, .285)));
   }
 
   bool main_camera;
