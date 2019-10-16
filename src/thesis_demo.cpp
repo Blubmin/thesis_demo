@@ -58,12 +58,12 @@ class HelloGame : public pxl::Game {
     mesh->Bind();
     empty->AddChild(mesh);
 
-    ground =
-        pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(GetMeshPath("plane.obj"));
+    ground = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("wood/wood.obj"));
     ground->Bind();
     ground->position -= Eigen::Vector3f(0.f, 0.01f, 0.f);
-    ground->scale = Eigen::Vector3f(50.f, 50.f, 1.f);
-    ground->rotation.x() = -90;
+    // ground->scale = Eigen::Vector3f(50.f, 50.f, 1.f);
+    // ground->rotation.x() = -90;
 
     prog = std::shared_ptr<pxl::Program>(new pxl::Program(
         GetShaderPath("mesh.vert"), GetShaderPath("mesh.frag")));
@@ -117,6 +117,13 @@ class HelloGame : public pxl::Game {
     sphere->AddComponent(std::make_shared<PlanarMovementComponent>());
     aesthetic_camera_component->SetTarget(sphere);
 
+    block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("block_A/block_A.obj"));
+    block->Bind();
+    block->position = Eigen::Vector3f(-5, 0, -5);
+    block->rotation.y() = 45;
+    auto block_mesh = std::dynamic_pointer_cast<pxl::OglMesh>(block->mesh);
+
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
     scene->entities.push_back(sphere);
@@ -128,6 +135,7 @@ class HelloGame : public pxl::Game {
     scene->entities.push_back(light);
     scene->entities.push_back(light2);
     scene->entities.push_back(dir_light);
+    scene->entities.push_back(block);
     // scene->entities.push_back(
     //    std::make_shared<pxl::PointLight>(pxl::Color(1.f, 1.f, 1.f)));
     // scene->entities.back()->position += Eigen::Vector3f(0.f, 3.f, 0.f);
@@ -200,11 +208,11 @@ class HelloGame : public pxl::Game {
     framebuffers.first->End();
 
     // Draw scene from aesthetic camera
-    framebuffers.second->Begin();
-    aesthetic_camera->Update(time_elapsed);
-    scene->camera = aesthetic_camera;
-    pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
-    framebuffers.second->End();
+    // framebuffers.second->Begin();
+    // aesthetic_camera->Update(time_elapsed);
+    // scene->camera = aesthetic_camera;
+    // pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
+    // framebuffers.second->End();
 
     // Draw final results to back buffer
     std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers.first;
@@ -234,7 +242,11 @@ class HelloGame : public pxl::Game {
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *main_viewport->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //     *pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0));
+    //    *pxl::SceneRenderer::g_buffer_->GetColorAttachment(1));
+    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+    //    *std::dynamic_pointer_cast<pxl::OglMaterial>(
+    //         block->GetComponent<pxl::OglMesh>()->materials[0])
+    //         ->diffuse_texture);
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *sub_viewport->GetColorAttachment(0),
         Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98, .285)));
@@ -251,6 +263,7 @@ class HelloGame : public pxl::Game {
   std::shared_ptr<pxl::Empty> empty;
   std::shared_ptr<pxl::MeshEntity> mesh;
   std::shared_ptr<pxl::MeshEntity> ground;
+  std::shared_ptr<pxl::MeshEntity> block;
   std::shared_ptr<pxl::Program> prog;
   std::vector<std::shared_ptr<pxl::PointLight>> point_lights;
 
