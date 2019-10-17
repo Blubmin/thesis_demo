@@ -118,9 +118,9 @@ class HelloGame : public pxl::Game {
     aesthetic_camera_component->SetTarget(sphere);
 
     block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-        GetMeshPath("block_A/block_A.obj"));
+        GetMeshPath("block_A/block.obj"));
     block->Bind();
-    block->position = Eigen::Vector3f(-5, 0, -5);
+    block->position = Eigen::Vector3f(-5, 1, -5);
     block->rotation.y() = 45;
     auto block_mesh = std::dynamic_pointer_cast<pxl::OglMesh>(block->mesh);
 

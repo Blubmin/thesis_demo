@@ -1,0 +1,21 @@
+# File produced by Open Asset Import Library (http://www.assimp.sf.net)
+# (assimp v3.1.29665513)
+
+newmtl MAT_Mat_0_0
+kd 1 1 1
+ka 0.2 0.2 0.2
+ks 1 1 1
+ke 0 0 0
+d 1
+illum 1
+map_kd colour.BMP
+
+newmtl MAT_Mat_0_1
+kd 1 1 1
+ka 0.2 0.2 0.2
+ks 1 1 1
+ke 0 0 0
+d 1
+illum 1
+map_kd Pale wood.JPG
+
