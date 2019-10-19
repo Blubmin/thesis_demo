@@ -1,0 +1,34 @@
+# Blender MTL File: 'block.blend'
+# Material Count: 3
+
+newmtl Blue
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.004451 0.004740 0.527719
+Ks 0.500000 0.500000 0.500000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl Material
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.799173 0.800000 0.619029
+Ks 0.500000 0.500000 0.500000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump bump.png
+
+newmtl Wood.001
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd TexturesCom_WoodFine0010_seamless_S.jpg

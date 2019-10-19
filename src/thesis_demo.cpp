@@ -118,11 +118,15 @@ class HelloGame : public pxl::Game {
     aesthetic_camera_component->SetTarget(sphere);
 
     block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-        GetMeshPath("block_A/block.obj"));
+        GetMeshPath("block_A/block_A.obj"));
     block->Bind();
     block->position = Eigen::Vector3f(-5, 1, -5);
     block->rotation.y() = 45;
-    auto block_mesh = std::dynamic_pointer_cast<pxl::OglMesh>(block->mesh);
+    auto block_H = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("block_A/block_H.obj"));
+    block_H->Bind();
+    block_H->position = Eigen::Vector3f(-5, 3, -5);
+    block_H->rotation.z() = 90;
 
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
@@ -136,6 +140,7 @@ class HelloGame : public pxl::Game {
     scene->entities.push_back(light2);
     scene->entities.push_back(dir_light);
     scene->entities.push_back(block);
+    scene->entities.push_back(block_H);
     // scene->entities.push_back(
     //    std::make_shared<pxl::PointLight>(pxl::Color(1.f, 1.f, 1.f)));
     // scene->entities.back()->position += Eigen::Vector3f(0.f, 3.f, 0.f);
@@ -224,17 +229,17 @@ class HelloGame : public pxl::Game {
 
     auto mouse_pos =
         ImGui::GetMousePos() *
-        ImVec2(
-            pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0)->GetWidth(),
-            pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0)
-                ->GetHeight()) /
+        ImVec2(pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+                   ->GetWidth(),
+               pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+                   ->GetHeight()) /
         ImVec2(pxl::Game::State.window_width, pxl::Game::State.window_height);
     mouse_pos.y =
-        pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0)->GetHeight() -
+        pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)->GetHeight() -
         mouse_pos.y;
 
     auto pixel =
-        pxl::SceneRenderer::ssao_buffer_->ReadPixel(mouse_pos.x, mouse_pos.y);
+        pxl::SceneRenderer::shadow_buffer_->ReadPixel(mouse_pos.x, mouse_pos.y);
     ImGui::BeginTooltip();
     ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(), pixel.w());
     ImGui::EndTooltip();
@@ -242,7 +247,7 @@ class HelloGame : public pxl::Game {
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *main_viewport->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //    *pxl::SceneRenderer::g_buffer_->GetColorAttachment(1));
+    //     *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
     //    *std::dynamic_pointer_cast<pxl::OglMaterial>(
     //         block->GetComponent<pxl::OglMesh>()->materials[0])

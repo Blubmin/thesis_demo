@@ -1,25 +1,34 @@
-# Blender MTL File: 'block_A.blend'
-# Material Count: 2
+# Blender MTL File: 'block.blend'
+# Material Count: 3
 
-newmtl MAT_Mat_0_0
-Ns 0.000000
+newmtl Material
+Ns 225.000000
 Ka 1.000000 1.000000 1.000000
-Kd 1.000000 1.000000 1.000000
-Ks 1.000000 1.000000 1.000000
+Kd 0.799173 0.800000 0.619029
+Ks 0.500000 0.500000 0.500000
 Ke 0.0 0.0 0.0
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd colour.BMP
+map_Bump bump.png
 
-newmtl MAT_Mat_0_1
-Ns 0.000000
+newmtl Wood.001
+Ns 225.000000
 Ka 1.000000 1.000000 1.000000
-Kd 1.000000 1.000000 1.000000
-Ks 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
 Ke 0.0 0.0 0.0
 Ni 1.450000
 d 1.000000
 illum 2
-map_Bump normal.png
-map_Kd Pale wood.JPG
+map_Kd TexturesCom_WoodFine0010_seamless_S.jpg
+
+newmtl red
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.476990 0.014311 0.014311
+Ks 0.500000 0.500000 0.500000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 2
