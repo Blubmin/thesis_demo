@@ -13,6 +13,7 @@
 #include <pixel_engine/camera.h>
 #include <pixel_engine/directional_light.h>
 #include <pixel_engine/empty.h>
+#include <pixel_engine/fps_controller.h>
 #include <pixel_engine/free_camera_component.h>
 #include <pixel_engine/game.h>
 #include <pixel_engine/mesh_loader.h>
@@ -42,10 +43,13 @@ boost::filesystem::path GetShaderPath(const std::string& shader_file) {
 }
 }  // namespace
 
-class HelloGame : public pxl::Game {
+class ThesisDemo : public pxl::Game {
  public:
-  HelloGame() : pxl::Game("Hello Game") {}
+  ThesisDemo() : pxl::Game("Aesthetic Cam Demo") {}
   void Init() override {
+    glfwSetInputMode(pxl::Game::State.window, GLFW_CURSOR,
+                     GLFW_CURSOR_DISABLED);
+
     main_camera = true;
 
     empty = std::make_shared<pxl::Empty>();
@@ -70,7 +74,6 @@ class HelloGame : public pxl::Game {
 
     camera = std::make_shared<pxl::Camera>();
     camera->position += Eigen::Vector3f(0, 1, 10);
-    camera->AddComponent(std::make_shared<pxl::FreeCameraComponent>());
 
     aesthetic_camera = std::make_shared<pxl::Camera>();
     aesthetic_camera->fov = 45;
@@ -110,11 +113,15 @@ class HelloGame : public pxl::Game {
     std::shared_ptr<pxl::MeshEntity> sphere =
         pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
             GetMeshPath("army_man_standing_scaled.obj"));
+    sphere->AddChild(camera);
+    camera->position = Eigen::Vector3f(0, 1.65, .2);
+    camera->rotation.y() = 180;
+
     // std::shared_ptr<pxl::Mesh> sphere = std::make_shared<pxl::OglMesh>(
     //    std::make_shared<pxl::UvSphere>(.5f, 10, 20));
     sphere->Bind();
     sphere->position = Eigen::Vector3f(3, 0, 2);
-    sphere->AddComponent(std::make_shared<PlanarMovementComponent>());
+    sphere->AddComponent(std::make_shared<pxl::FpsController>());
     aesthetic_camera_component->SetTarget(sphere);
 
     block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
@@ -141,9 +148,6 @@ class HelloGame : public pxl::Game {
     scene->entities.push_back(dir_light);
     scene->entities.push_back(block);
     scene->entities.push_back(block_H);
-    // scene->entities.push_back(
-    //    std::make_shared<pxl::PointLight>(pxl::Color(1.f, 1.f, 1.f)));
-    // scene->entities.back()->position += Eigen::Vector3f(0.f, 3.f, 0.f);
     scene->entities.insert(scene->entities.end(), point_lights.begin(),
                            point_lights.end());
     auto skybox_mesh = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
@@ -278,7 +282,7 @@ class HelloGame : public pxl::Game {
 int main(int argc, char* argv[]) {
   FLAGS_logtostderr = true;
   google::InitGoogleLogging(argv[0]);
-  HelloGame game;
+  ThesisDemo game;
   game.Run();
   return 0;
 }
