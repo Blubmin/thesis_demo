@@ -205,10 +205,25 @@ class ThesisDemo : public pxl::Game {
         }
       }
     }
+
+    ImGui::DragFloat("Separation Distance", &ai_manager->separation_distance);
+    ImGui::DragFloat("Separation", &ai_manager->separation);
+    ImGui::DragFloat("Clustering Distance", &ai_manager->clustering_distance);
+    ImGui::DragFloat("Clustering", &ai_manager->clustering);
+    ImGui::DragFloat("Max Speed", &ai_manager->max_speed);
+
     ImGui::End();
 
     if (ImGui::IsKeyPressed(GLFW_KEY_SLASH)) {
       main_camera = !main_camera;
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_TAB)) {
+      glfwSetInputMode(pxl::Game::State.window, GLFW_CURSOR,
+                       glfwGetInputMode(pxl::Game::State.window, GLFW_CURSOR) ==
+                               GLFW_CURSOR_DISABLED
+                           ? GLFW_CURSOR_NORMAL
+                           : GLFW_CURSOR_DISABLED);
     }
 
     // Draw scene from primary camera
@@ -217,11 +232,11 @@ class ThesisDemo : public pxl::Game {
     framebuffers.first->End();
 
     // Draw scene from aesthetic camera
-    // framebuffers.second->Begin();
-    // aesthetic_camera->Update(time_elapsed);
-    // scene->camera = aesthetic_camera;
-    // pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
-    // framebuffers.second->End();
+    framebuffers.second->Begin();
+    aesthetic_camera->Update(time_elapsed);
+    scene->camera = aesthetic_camera;
+    pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
+    framebuffers.second->End();
 
     // Draw final results to back buffer
     std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers.first;
@@ -231,22 +246,21 @@ class ThesisDemo : public pxl::Game {
       std::swap(main_viewport, sub_viewport);
     }
 
-    auto mouse_pos =
-        ImGui::GetMousePos() *
-        ImVec2(pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
-                   ->GetWidth(),
-               pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
-                   ->GetHeight()) /
-        ImVec2(pxl::Game::State.window_width, pxl::Game::State.window_height);
-    mouse_pos.y =
-        pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)->GetHeight() -
-        mouse_pos.y;
+    /* auto mouse_pos =
+         ImGui::GetMousePos() *
+         ImVec2(pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+                    ->GetWidth(),
+                pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+                    ->GetHeight()) /
+         ImVec2(pxl::Game::State.window_width, pxl::Game::State.window_height);
+     mouse_pos.y =
+         pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)->GetHeight()
+     - mouse_pos.y;
 
-    auto pixel =
-        pxl::SceneRenderer::shadow_buffer_->ReadPixel(mouse_pos.x, mouse_pos.y);
-    ImGui::BeginTooltip();
-    ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(), pixel.w());
-    ImGui::EndTooltip();
+     auto pixel =
+         pxl::SceneRenderer::shadow_buffer_->ReadPixel(mouse_pos.x,
+     mouse_pos.y); ImGui::BeginTooltip(); ImGui::Text("(%f, %f, %f, %f)",
+     pixel.x(), pixel.y(), pixel.z(), pixel.w()); ImGui::EndTooltip();*/
 
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *main_viewport->GetColorAttachment(0));

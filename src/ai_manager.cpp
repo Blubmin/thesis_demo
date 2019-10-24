@@ -33,7 +33,14 @@ class BoidComponent : public pxl::Component {
 
 AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
                      std::shared_ptr<pxl::Entity> player)
-    : scene_(scene), player_(player), red_team_(kTeamSize) {
+    : separation_distance(1.2),
+      separation(5),
+      clustering_distance(20),
+      clustering(1),
+      max_speed(1),
+      scene_(scene),
+      player_(player),
+      red_team_(kTeamSize) {
   for (int32_t i = 0; i < kTeamSize; ++i) {
     std::shared_ptr<pxl::MeshEntity> mesh =
         pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
@@ -74,7 +81,7 @@ Eigen::Vector3f AiManager::ComputeSeparation(
     }
     auto diff = other_unit->position - unit->position;
     auto dist = diff.norm();
-    if (dist < 1.2f) {
+    if (dist < separation_distance) {
       separation_vec -= diff.normalized() / dist;
       ++count;
     }
@@ -103,7 +110,7 @@ Eigen::Vector3f AiManager::ComputeClustering(
     }
     auto diff = other_unit->position - unit->position;
     auto dist = diff.norm();
-    if (dist < 20) {
+    if (dist < clustering_distance) {
       position += other_unit->position;
       ++count;
     }
@@ -125,14 +132,17 @@ void AiManager::Update(float time_elapsed) {
     } else {
       boid->acceleration += Seek(unit, player_->position) * 10.0;
     }
-    boid->acceleration += ComputeClustering(unit);
-    boid->acceleration += ComputeSeparation(unit) * 5.0;
+    boid->acceleration += ComputeClustering(unit) * clustering;
+    boid->acceleration += ComputeSeparation(unit) * separation;
     boid->velocity += boid->acceleration * time_elapsed;
     boid->velocity.y() = 0;
     unit->rotation.y() =
         atan(boid->velocity.x() / boid->velocity.z()) * 180 / M_PI;
     if (boid->velocity.z() < 0) {
       unit->rotation.y() += 180;
+    }
+    if (boid->velocity.norm() > max_speed) {
+      boid->velocity = boid->velocity.normalized() * max_speed;
     }
   }
 
