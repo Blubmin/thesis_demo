@@ -8,6 +8,7 @@
 #include <glog/logging.h>
 #include <pixel_engine/camera.h>
 #include <pixel_engine/eigen_typedefs.h>
+#include <pixel_engine/game.h>
 
 class AestheticCostFunction {
  public:
@@ -161,12 +162,12 @@ void AestheticCameraComponent::Update(float time_elapsed) {
   options.linear_solver_type = ceres::LinearSolverType::DENSE_QR;
 
   ceres::Solver::Summary summary;
-  ceres::Solve(options, &problem, &summary);
+  // ceres::Solve(options, &problem, &summary);
 
-  if (summary.termination_type == ceres::TerminationType::FAILURE) {
-    LOG(ERROR) << summary.FullReport();
-    return;
-  }
+  /* if (summary.termination_type == ceres::TerminationType::FAILURE) {
+     LOG(ERROR) << summary.FullReport();
+     return;
+   }*/
 
   // Set the camera position to the solved position
   camera_ptr->position =
@@ -175,6 +176,16 @@ void AestheticCameraComponent::Update(float time_elapsed) {
   // Set the camera rotation to the solved rotations
   camera_ptr->rotation.x() = parameters[3] / M_PI * 180.f;
   camera_ptr->rotation.y() = parameters[4] / M_PI * 180.f;
+
+  static bool kicked_off = false;
+  if (!kicked_off) {
+    kicked_off = true;
+    pxl::Game::BackgroundThreadPool.Post([]() {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+      LOG(INFO) << "Wait!";
+      kicked_off = false;
+    });
+  }
 }
 
 void AestheticCameraComponent::SetTarget(std::weak_ptr<pxl::Entity> target) {

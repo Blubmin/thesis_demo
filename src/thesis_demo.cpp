@@ -81,7 +81,7 @@ class ThesisDemo : public pxl::Game {
     auto aesthetic_camera_component =
         std::make_shared<AestheticCameraComponent>();
     aesthetic_camera_component->SetPlayer(mesh);
-    // aesthetic_camera->AddComponent(aesthetic_camera_component);
+    aesthetic_camera->AddComponent(aesthetic_camera_component);
 
     framebuffers =
         std::make_pair(std::make_shared<pxl::OglFramebuffer>(1920, 1080),
