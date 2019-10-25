@@ -120,6 +120,7 @@ void AestheticCameraComponent::SetTarget(std::weak_ptr<pxl::Entity> target) {
 
 void AestheticCameraComponent::SetPlayer(std::weak_ptr<pxl::Entity> player) {
   player_ = player;
+  prev_player_pos_ = player_.lock()->position;
 }
 
 std::function<void()> AestheticCameraComponent::RunSolver() {
@@ -129,7 +130,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
       std::dynamic_pointer_cast<pxl::Camera>(owner.lock())->GetPerspective();
   Eigen::Vector3f camera_rotation = owner.lock()->rotation;
   Eigen::Matrix4f target_transform = target_.lock()->GetTransform();
-  return [=]() {
+  return [=]() mutable {
     ceres::Problem problem;
 
     std::array<double, 5> parameters;
@@ -137,12 +138,13 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
     Eigen::Vector3f axis = rot.axis().normalized();
     axis = axis * rot.angle();
 
-    //// Improve camera initialization by adding in player shift
-    // if (prev_player_pos_) {
-    //  camera_transform.block<3, 1>(0, 3) +=
-    //      player_transform.block<3, 1> - prev_player_pos_.get();
-    //}
-    // prev_player_pos_ =
+    // Improve camera initialization by adding in player shift
+    if (prev_player_pos_) {
+      camera_transform.block<3, 1>(0, 3) =
+          Eigen::GetPosition(camera_transform) +
+          (Eigen::GetPosition(player_transform) - prev_player_pos_.get());
+    }
+
     auto camera_pos = Eigen::GetPosition(camera_transform);
 
     parameters[0] = camera_pos.x();
