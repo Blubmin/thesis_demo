@@ -110,19 +110,18 @@ class ThesisDemo : public pxl::Game {
     auto dir_light =
         std::make_shared<pxl::DirectionalLight>(Eigen::Vector3f(1, -1, 1));
 
-    std::shared_ptr<pxl::MeshEntity> sphere =
-        pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-            GetMeshPath("army_man_standing_scaled.obj"));
-    sphere->AddChild(camera);
+    player = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("army_man_standing_scaled.obj"));
+    player->AddChild(camera);
     camera->position = Eigen::Vector3f(0, 1.65, .2);
     camera->rotation.y() = 180;
 
     // std::shared_ptr<pxl::Mesh> sphere = std::make_shared<pxl::OglMesh>(
     //    std::make_shared<pxl::UvSphere>(.5f, 10, 20));
-    sphere->Bind();
-    sphere->position = Eigen::Vector3f(3, 0, 2);
-    sphere->AddComponent(std::make_shared<pxl::FpsController>());
-    aesthetic_camera_component->SetTarget(sphere);
+    player->Bind();
+    player->position = Eigen::Vector3f(3, 0, 2);
+    player->AddComponent(std::make_shared<pxl::FpsController>());
+    aesthetic_camera_component->SetTarget(player);
 
     block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
         GetMeshPath("block_A/block_A.obj"));
@@ -137,7 +136,7 @@ class ThesisDemo : public pxl::Game {
 
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
-    scene->entities.push_back(sphere);
+    scene->entities.push_back(player);
     scene->entities.push_back(empty);
     scene->entities.push_back(camera);
     scene->entities.push_back(aesthetic_camera);
@@ -156,7 +155,11 @@ class ThesisDemo : public pxl::Game {
     scene->skybox = std::make_shared<pxl::Skybox>(skybox_mesh);
     scene->Bind();
 
-    ai_manager = std::make_shared<AiManager>(scene, sphere);
+    ai_manager = std::make_shared<AiManager>(scene, player);
+    aesthetic_camera_component->SetPlayer(player);
+    aesthetic_camera_component->SetTarget(ai_manager->red_leader_);
+    pxl::Game::BackgroundThreadPool.Post(
+        aesthetic_camera_component->RunSolver());
   }
 
   void Update(float time_elapsed) override {
@@ -224,6 +227,8 @@ class ThesisDemo : public pxl::Game {
                                GLFW_CURSOR_DISABLED
                            ? GLFW_CURSOR_NORMAL
                            : GLFW_CURSOR_DISABLED);
+      auto fps = player->GetComponent<pxl::FpsController>();
+      fps->disable = !fps->disable;
     }
 
     // Draw scene from primary camera
@@ -287,6 +292,7 @@ class ThesisDemo : public pxl::Game {
   std::shared_ptr<pxl::MeshEntity> mesh;
   std::shared_ptr<pxl::MeshEntity> ground;
   std::shared_ptr<pxl::MeshEntity> block;
+  std::shared_ptr<pxl::MeshEntity> player;
   std::shared_ptr<pxl::Program> prog;
   std::vector<std::shared_ptr<pxl::PointLight>> point_lights;
 

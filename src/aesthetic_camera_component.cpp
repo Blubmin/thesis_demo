@@ -7,33 +7,31 @@
 #include <ceres/ceres.h>
 #include <glog/logging.h>
 #include <pixel_engine/camera.h>
-#include <pixel_engine/eigen_typedefs.h>
+#include <pixel_engine/eigen_utilities.h>
 #include <pixel_engine/game.h>
 
 class AestheticCostFunction {
  public:
-  AestheticCostFunction(std::weak_ptr<pxl::Camera> camera,
-                        std::weak_ptr<pxl::Entity> player,
-                        std::weak_ptr<pxl::Entity> target,
+  AestheticCostFunction() {}
+
+  AestheticCostFunction(Eigen::Matrix4f perspective_transform,
+                        Eigen::Matrix4f player_transform,
+                        Eigen::Matrix4f target_transform,
                         std::vector<bool> constant_residuals)
-      : camera(camera),
-        player(player),
-        target(target),
+      : perspective_transform(perspective_transform),
+        player_transform(player_transform),
+        target_transform(target_transform),
         constant_residuals_(constant_residuals) {}
 
   template <typename T>
   bool operator()(const T* const x, const T* const y, const T* const z,
                   const T* const pitch, const T* const yaw,
                   T* residuals) const {
-    const auto player_ptr = player.lock();
-    const auto target_ptr = target.lock();
-    if (target_ptr == nullptr || player_ptr == nullptr) {
-      return false;
-    }
-    Eigen::Vector4<T> player_pos = Eigen::Vector4d(0, .5, 0, 1).cast<T>();
-    player_pos = player_ptr->GetTransform().cast<T>() * player_pos;
-    Eigen::Vector4<T> target_pos = Eigen::Vector4d(0, 0, 0, 1).cast<T>();
-    target_pos = target_ptr->GetTransform().cast<T>() * target_pos;
+    // Get positions
+    Eigen::Vector4<T> player_pos = Eigen::Vector4d(0, .7, 0, 1).cast<T>();
+    player_pos = player_transform.cast<T>() * player_pos;
+    Eigen::Vector4<T> target_pos = Eigen::Vector4d(0, .7, 0, 1).cast<T>();
+    target_pos = target_transform.cast<T>() * target_pos;
 
     Eigen::Vector3<T> camera_pos(*x, *y, *z);
     Eigen::Quaternion<T> rotation =
@@ -46,14 +44,10 @@ class AestheticCostFunction {
 
     camera_T_world = camera_T_world.inverse();
 
-    const auto camera_ptr = camera.lock();
-    if (camera_ptr == nullptr) {
-      return false;
-    }
-    Eigen::Vector4<T> norm_target_pos = camera_ptr->GetPerspective().cast<T>() *
-                                        camera_T_world.matrix() * target_pos;
-    Eigen::Vector4<T> norm_player_pos = camera_ptr->GetPerspective().cast<T>() *
-                                        camera_T_world.matrix() * player_pos;
+    Eigen::Vector4<T> norm_target_pos =
+        perspective_transform.cast<T>() * camera_T_world.matrix() * target_pos;
+    Eigen::Vector4<T> norm_player_pos =
+        perspective_transform.cast<T>() * camera_T_world.matrix() * player_pos;
 
     Eigen::Vector3<T> position_diff = player_pos.head<3>() - camera_pos;
     residuals[0] = position_diff[0];
@@ -86,22 +80,23 @@ class AestheticCostFunction {
     return true;
   }
 
-  static ceres::CostFunction* Create(std::weak_ptr<pxl::Camera> camera,
-                                     std::weak_ptr<pxl::Entity> player,
-                                     std::weak_ptr<pxl::Entity> entity,
-                                     std::vector<bool> constant_parameters) {
+  static ceres::CostFunction* Create(
+      const Eigen::Matrix4f& perspective_transform,
+      const Eigen::Matrix4f& player_transform,
+      const Eigen::Matrix4f& entity_transform,
+      std::vector<bool> constant_parameters) {
     ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 1, 1, 1, 1, 1>*
-        cost_function =
-            new ceres::AutoDiffCostFunction<AestheticCostFunction, 8, 1, 1, 1,
-                                            1, 1>(new AestheticCostFunction(
-                camera, player, entity, constant_parameters));
+        cost_function = new ceres::AutoDiffCostFunction<AestheticCostFunction,
+                                                        8, 1, 1, 1, 1, 1>(
+            new AestheticCostFunction(perspective_transform, player_transform,
+                                      entity_transform, constant_parameters));
     return cost_function;
   }
 
  private:
-  const std::weak_ptr<pxl::Camera> camera;
-  const std::weak_ptr<pxl::Entity> player;
-  const std::weak_ptr<pxl::Entity> target;
+  Eigen::Matrix4f perspective_transform;
+  Eigen::Matrix4f player_transform;
+  Eigen::Matrix4f target_transform;
 
   std::vector<bool> constant_residuals_;
 };
@@ -117,76 +112,7 @@ AestheticCameraComponent::AestheticCameraComponent()
   }
 }
 
-void AestheticCameraComponent::Update(float time_elapsed) {
-  ceres::Problem problem;
-
-  auto player_ptr = player_.lock();
-  auto camera_ptr = std::static_pointer_cast<pxl::Camera>(owner.lock());
-  std::array<double, 5> parameters;
-  Eigen::AngleAxisf rot(camera_ptr->GetTransform().block<3, 3>(0, 0));
-  Eigen::Vector3f axis = rot.axis().normalized();
-  axis = axis * rot.angle();
-
-  // Improve camera initialization by adding in player shift
-  if (prev_player_pos_) {
-    camera_ptr->position += player_ptr->position - prev_player_pos_.get();
-  }
-  prev_player_pos_ = player_ptr->position;
-
-  parameters[0] = camera_ptr->position.x();
-  parameters[1] = camera_ptr->position.y();
-  parameters[2] = camera_ptr->position.z();
-  parameters[3] = camera_ptr->rotation.x() / 180 * M_PI;
-  parameters[4] = camera_ptr->rotation.y() / 180 * M_PI;
-
-  auto cost = AestheticCostFunction::Create(camera_ptr, player_, target_,
-                                            constant_residuals);
-  problem.AddResidualBlock(cost, NULL, parameters.data(), parameters.data() + 1,
-                           parameters.data() + 2, parameters.data() + 3,
-                           parameters.data() + 4);
-  problem.SetParameterLowerBound(parameters.data() + 3, 0, -M_PI_2);
-  problem.SetParameterUpperBound(parameters.data() + 3, 0, M_PI_2);
-
-  for (int i = 0; i < constant_parameters.size(); ++i) {
-    const auto val = constant_parameters[i];
-    if (val) {
-      problem.SetParameterBlockConstant(parameters.data() + i);
-    }
-  }
-
-  ceres::Solver::Options options;
-  options.num_threads = 12;
-  options.max_num_iterations = 100;
-  // options.parameter_tolerance = 1e-6;
-  // options.function_tolerance = 1e-6;
-  options.linear_solver_type = ceres::LinearSolverType::DENSE_QR;
-
-  ceres::Solver::Summary summary;
-  // ceres::Solve(options, &problem, &summary);
-
-  /* if (summary.termination_type == ceres::TerminationType::FAILURE) {
-     LOG(ERROR) << summary.FullReport();
-     return;
-   }*/
-
-  // Set the camera position to the solved position
-  camera_ptr->position =
-      Eigen::Vector3f(parameters[0], parameters[1], parameters[2]);
-
-  // Set the camera rotation to the solved rotations
-  camera_ptr->rotation.x() = parameters[3] / M_PI * 180.f;
-  camera_ptr->rotation.y() = parameters[4] / M_PI * 180.f;
-
-  static bool kicked_off = false;
-  if (!kicked_off) {
-    kicked_off = true;
-    pxl::Game::BackgroundThreadPool.Post([]() {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-      LOG(INFO) << "Wait!";
-      kicked_off = false;
-    });
-  }
-}
+void AestheticCameraComponent::Update(float time_elapsed) {}
 
 void AestheticCameraComponent::SetTarget(std::weak_ptr<pxl::Entity> target) {
   target_ = target;
@@ -194,4 +120,88 @@ void AestheticCameraComponent::SetTarget(std::weak_ptr<pxl::Entity> target) {
 
 void AestheticCameraComponent::SetPlayer(std::weak_ptr<pxl::Entity> player) {
   player_ = player;
+}
+
+std::function<void()> AestheticCameraComponent::RunSolver() {
+  Eigen::Matrix4f player_transform = player_.lock()->GetTransform();
+  Eigen::Matrix4f camera_transform = owner.lock()->GetTransform();
+  Eigen::Matrix4f perspective_transform =
+      std::dynamic_pointer_cast<pxl::Camera>(owner.lock())->GetPerspective();
+  Eigen::Vector3f camera_rotation = owner.lock()->rotation;
+  Eigen::Matrix4f target_transform = target_.lock()->GetTransform();
+  return [=]() {
+    ceres::Problem problem;
+
+    std::array<double, 5> parameters;
+    Eigen::AngleAxisf rot(Eigen::GetRotation(camera_transform));
+    Eigen::Vector3f axis = rot.axis().normalized();
+    axis = axis * rot.angle();
+
+    //// Improve camera initialization by adding in player shift
+    // if (prev_player_pos_) {
+    //  camera_transform.block<3, 1>(0, 3) +=
+    //      player_transform.block<3, 1> - prev_player_pos_.get();
+    //}
+    // prev_player_pos_ =
+    auto camera_pos = Eigen::GetPosition(camera_transform);
+
+    parameters[0] = camera_pos.x();
+    parameters[1] = camera_pos.y();
+    parameters[2] = camera_pos.z();
+    parameters[3] = camera_rotation.x() / 180 * M_PI;
+    parameters[4] = camera_rotation.y() / 180 * M_PI;
+
+    auto cost =
+        AestheticCostFunction::Create(perspective_transform, player_transform,
+                                      target_transform, constant_residuals);
+    problem.AddResidualBlock(cost, NULL, parameters.data(),
+                             parameters.data() + 1, parameters.data() + 2,
+                             parameters.data() + 3, parameters.data() + 4);
+    problem.SetParameterLowerBound(parameters.data() + 3, 0, -M_PI_2);
+    problem.SetParameterUpperBound(parameters.data() + 3, 0, M_PI_2);
+
+    for (int i = 0; i < constant_parameters.size(); ++i) {
+      const auto val = constant_parameters[i];
+      if (val) {
+        problem.SetParameterBlockConstant(parameters.data() + i);
+      }
+    }
+
+    ceres::Solver::Options options;
+    options.num_threads = 12;
+    options.max_num_iterations = 100;
+    // options.parameter_tolerance = 1e-6;
+    // options.function_tolerance = 1e-6;
+    options.linear_solver_type = ceres::LinearSolverType::DENSE_QR;
+
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+
+    /* if (summary.termination_type == ceres::TerminationType::FAILURE) {
+       LOG(ERROR) << summary.FullReport();
+       return;
+     }*/
+
+    pxl::Game::RenderingThread.Post(UpdateTransform(std::move(parameters)));
+  };
+}
+
+std::function<void()> AestheticCameraComponent::UpdateTransform(
+    std::array<double, 5> parameters) {
+  return [&, parameters = parameters]() {
+    auto player_ptr = std::static_pointer_cast<pxl::Entity>(player_.lock());
+    auto camera_ptr = std::static_pointer_cast<pxl::Camera>(owner.lock());
+    auto target_ptr = std::static_pointer_cast<pxl::Camera>(target_.lock());
+
+    // Set the camera position to the solved position
+    camera_ptr->position =
+        Eigen::Vector3f(parameters[0], parameters[1], parameters[2]);
+
+    // Set the camera rotation to the solved rotations
+    camera_ptr->rotation.x() = parameters[3] / M_PI * 180.f;
+    camera_ptr->rotation.y() = parameters[4] / M_PI * 180.f;
+
+    // Kick off next solve
+    pxl::Game::BackgroundThreadPool.Post(RunSolver());
+  };
 }

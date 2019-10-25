@@ -29,5 +29,7 @@ class AiManager {
   std::shared_ptr<pxl::Scene> scene_;
   std::shared_ptr<pxl::Entity> player_;
   std::vector<std::shared_ptr<pxl::Entity>> red_team_;
+
+ public:
   std::shared_ptr<pxl::Entity> red_leader_;
 };
