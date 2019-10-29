@@ -184,7 +184,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
        return;
      }*/
 
-    pxl::Game::RenderingThread.Post(UpdateTransform(std::move(parameters)));
+    // pxl::Game::RenderingThread.Post(UpdateTransform(std::move(parameters)));
   };
 }
 

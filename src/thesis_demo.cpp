@@ -251,26 +251,29 @@ class ThesisDemo : public pxl::Game {
       std::swap(main_viewport, sub_viewport);
     }
 
-    /* auto mouse_pos =
-         ImGui::GetMousePos() *
-         ImVec2(pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
-                    ->GetWidth(),
-                pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
-                    ->GetHeight()) /
-         ImVec2(pxl::Game::State.window_width, pxl::Game::State.window_height);
-     mouse_pos.y =
-         pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)->GetHeight()
-     - mouse_pos.y;
-
-     auto pixel =
-         pxl::SceneRenderer::shadow_buffer_->ReadPixel(mouse_pos.x,
-     mouse_pos.y); ImGui::BeginTooltip(); ImGui::Text("(%f, %f, %f, %f)",
-     pixel.x(), pixel.y(), pixel.z(), pixel.w()); ImGui::EndTooltip();*/
+    // auto mouse_pos =
+    //     ImGui::GetMousePos() *
+    //     ImVec2(pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+    //                ->GetWidth(),
+    //            pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+    //                ->GetHeight()) /
+    //     ImVec2(pxl::Game::State.window_width,
+    //     pxl::Game::State.window_height);
+    // mouse_pos.y =
+    //     pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)->GetHeight()
+    //     - mouse_pos.y;
+    //
+    // auto pixel =
+    //     pxl::SceneRenderer::shadow_buffer_->ReadPixel(mouse_pos.x,
+    //     mouse_pos.y);
+    // ImGui::BeginTooltip();
+    // ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(),
+    // pixel.w()); ImGui::EndTooltip();
 
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *main_viewport->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //     *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
+    //    *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
     //    *std::dynamic_pointer_cast<pxl::OglMaterial>(
     //         block->GetComponent<pxl::OglMesh>()->materials[0])
