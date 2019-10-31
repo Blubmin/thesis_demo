@@ -11,6 +11,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <pixel_engine/camera.h>
+#include <pixel_engine/convex_hull.h>
 #include <pixel_engine/directional_light.h>
 #include <pixel_engine/empty.h>
 #include <pixel_engine/fps_controller.h>
@@ -125,6 +126,8 @@ class ThesisDemo : public pxl::Game {
 
     block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
         GetMeshPath("block_A/block_A.obj"));
+    // block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+    //    GetMeshPath("urchin.obj"));
     block->Bind();
     block->position = Eigen::Vector3f(-5, 1, -5);
     block->rotation.y() = 45;
