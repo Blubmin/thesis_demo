@@ -133,7 +133,7 @@ class ThesisDemo : public pxl::Game {
     // block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
     //    GetMeshPath("urchin.obj"));
     block->Bind();
-    block->position = Eigen::Vector3f(-5, 3, -5);
+    block->position = Eigen::Vector3f(-5, 1, -5);
     block->rotation.y() = 45;
     block->AddComponent(std::make_shared<pxl::BoxCollider>(
         Eigen::Vector3f(1, 1, 1), pxl::ColliderComponent::kStatic));
@@ -144,8 +144,17 @@ class ThesisDemo : public pxl::Game {
     block_H->position = Eigen::Vector3f(-5, 3, -5);
     block_H->rotation.z() = 90;
 
+    auto ramp =
+        pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(GetMeshPath("ramp.obj"));
+    ramp->Bind();
+    ramp->position = Eigen::Vector3f(5, 1, -5);
+    ramp->rotation.y() = -45;
+    ramp->AddComponent(std::make_shared<pxl::HullCollider>(
+        *ramp->mesh, pxl::ColliderComponent::kStatic));
+
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
+    scene->entities.push_back(ramp);
     scene->entities.push_back(player);
     scene->entities.push_back(empty);
     scene->entities.push_back(camera);
