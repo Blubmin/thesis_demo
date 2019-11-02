@@ -24,6 +24,7 @@
 #include <pixel_engine/ogl_gamma_renderer.h>
 #include <pixel_engine/ogl_mesh.h>
 #include <pixel_engine/ogl_texture_renderer.h>
+#include <pixel_engine/physics_component.h>
 #include <pixel_engine/point_light.h>
 #include <pixel_engine/program.h>
 #include <pixel_engine/scene.h>
@@ -117,6 +118,7 @@ class ThesisDemo : public pxl::Game {
     player->AddChild(camera);
     player->AddComponent(std::make_shared<pxl::CapsuleCollider>(
         .35f, 1.8f, pxl::ColliderComponent::kDynamic));
+    player->AddComponent(std::make_shared<pxl::PhysicsComponent>());
 
     camera->position = Eigen::Vector3f(0, 1.65, .2);
     camera->rotation.y() = 180;
