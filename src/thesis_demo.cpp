@@ -11,6 +11,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <pixel_engine/camera.h>
+#include <pixel_engine/collider_component.h>
 #include <pixel_engine/convex_hull.h>
 #include <pixel_engine/directional_light.h>
 #include <pixel_engine/empty.h>
@@ -114,6 +115,9 @@ class ThesisDemo : public pxl::Game {
     player = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
         GetMeshPath("army_man_standing_scaled.obj"));
     player->AddChild(camera);
+    player->AddComponent(std::make_shared<pxl::CapsuleCollider>(
+        .35f, 1.8f, pxl::ColliderComponent::kDynamic));
+
     camera->position = Eigen::Vector3f(0, 1.65, .2);
     camera->rotation.y() = 180;
 
@@ -129,8 +133,11 @@ class ThesisDemo : public pxl::Game {
     // block = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
     //    GetMeshPath("urchin.obj"));
     block->Bind();
-    block->position = Eigen::Vector3f(-5, 1, -5);
+    block->position = Eigen::Vector3f(-5, 3, -5);
     block->rotation.y() = 45;
+    block->AddComponent(std::make_shared<pxl::BoxCollider>(
+        Eigen::Vector3f(1, 1, 1), pxl::ColliderComponent::kStatic));
+
     auto block_H = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
         GetMeshPath("block_A/block_H.obj"));
     block_H->Bind();

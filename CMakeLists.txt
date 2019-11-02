@@ -22,6 +22,7 @@ include_directories(pixel_engine/third_party/eigen)
 include_directories(pixel_engine/third_party/gl3w/include)
 include_directories(pixel_engine/third_party/glog/src)
 include_directories(pixel_engine/third_party/gflags/src)
+include_directories(pixel_engine/third_party/bullet3/src)
 add_subdirectory(pixel_engine)
 
 add_subdirectory(src)

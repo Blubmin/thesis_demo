@@ -3,6 +3,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include <pixel_engine/collider_component.h>
 #include <pixel_engine/mesh_loader.h>
 #include <pixel_engine/ogl_mesh.h>
 #include <boost/filesystem.hpp>
@@ -50,6 +51,8 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
     // mesh->mesh->materials[0]->diffuse = Eigen::Vector3f(1, i == 0 ? .15 : 0,
     // 0);
     mesh->AddComponent(std::make_shared<BoidComponent>());
+    mesh->AddComponent(std::make_shared<pxl::CapsuleCollider>(
+        .35f, 1.8f, pxl::ColliderComponent::kDynamic));
     red_team_[i] = mesh;
     scene_->entities.push_back(red_team_[i]);
     if (i == 0) {
