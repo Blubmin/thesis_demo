@@ -154,16 +154,24 @@ class ThesisDemo : public pxl::Game {
     ramp->AddComponent(std::make_shared<pxl::HullCollider>(
         *ramp->mesh, pxl::ColliderComponent::kStatic));
 
+    auto slight_ramp = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("slight_ramp.obj"));
+    slight_ramp->Bind();
+    slight_ramp->position = Eigen::Vector3f(8, .5, -5);
+    slight_ramp->AddComponent(std::make_shared<pxl::HullCollider>(
+        *slight_ramp->mesh, pxl::ColliderComponent::kStatic));
+
     auto cards = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
         GetMeshPath("playing_cards.obj"));
     cards->Bind();
     cards->position = Eigen::Vector3f(5, 0, -8);
-    cards->AddComponent(std::make_shared<pxl::HullCollider>(
+    cards->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
         *cards->mesh, pxl::ColliderComponent::kStatic));
 
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
     scene->entities.push_back(ramp);
+    scene->entities.push_back(slight_ramp);
     scene->entities.push_back(player);
     scene->entities.push_back(empty);
     scene->entities.push_back(camera);
