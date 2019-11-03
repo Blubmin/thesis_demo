@@ -154,6 +154,13 @@ class ThesisDemo : public pxl::Game {
     ramp->AddComponent(std::make_shared<pxl::HullCollider>(
         *ramp->mesh, pxl::ColliderComponent::kStatic));
 
+    auto cards = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("playing_cards.obj"));
+    cards->Bind();
+    cards->position = Eigen::Vector3f(5, 0, -8);
+    cards->AddComponent(std::make_shared<pxl::HullCollider>(
+        *cards->mesh, pxl::ColliderComponent::kStatic));
+
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
     scene->entities.push_back(ramp);
@@ -168,6 +175,7 @@ class ThesisDemo : public pxl::Game {
     scene->entities.push_back(dir_light);
     scene->entities.push_back(block);
     scene->entities.push_back(block_H);
+    scene->entities.push_back(cards);
     scene->entities.insert(scene->entities.end(), point_lights.begin(),
                            point_lights.end());
     auto skybox_mesh = pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
