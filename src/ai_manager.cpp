@@ -6,6 +6,7 @@
 #include <pixel_engine/collider_component.h>
 #include <pixel_engine/mesh_loader.h>
 #include <pixel_engine/ogl_mesh.h>
+#include <pixel_engine/physics_component.h>
 #include <boost/filesystem.hpp>
 
 namespace {
@@ -51,6 +52,7 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
     // mesh->mesh->materials[0]->diffuse = Eigen::Vector3f(1, i == 0 ? .15 : 0,
     // 0);
     mesh->AddComponent(std::make_shared<BoidComponent>());
+    mesh->AddComponent(std::make_shared<pxl::PhysicsComponent>());
     mesh->AddComponent(std::make_shared<pxl::CapsuleCollider>(
         .35f, 1.8f, pxl::ColliderComponent::kDynamic));
     red_team_[i] = mesh;

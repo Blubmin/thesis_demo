@@ -145,6 +145,8 @@ class ThesisDemo : public pxl::Game {
     block_H->Bind();
     block_H->position = Eigen::Vector3f(-5, 3, -5);
     block_H->rotation.z() = 90;
+    block_H->AddComponent(std::make_shared<pxl::BoxCollider>(
+        Eigen::Vector3f(1, 1, 1), pxl::ColliderComponent::kStatic));
 
     auto ramp =
         pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(GetMeshPath("ramp.obj"));
@@ -168,14 +170,58 @@ class ThesisDemo : public pxl::Game {
     cards->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
         *cards->mesh, pxl::ColliderComponent::kStatic));
 
+    auto wall1 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("block_wall.obj"));
+    wall1->Bind();
+    wall1->position = Eigen::Vector3f(0, 0, -19);
+    wall1->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
+        *wall1->mesh, pxl::ColliderComponent::kStatic));
+
+    auto wall2 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("block_wall.obj"));
+    wall2->Bind();
+    wall2->position = Eigen::Vector3f(0, 0, 19);
+    wall2->rotation = Eigen::Vector3f(0, 180, 0);
+    wall2->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
+        *wall2->mesh, pxl::ColliderComponent::kStatic));
+
+    auto wall3 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("block_wall.obj"));
+    wall3->Bind();
+    wall3->position = Eigen::Vector3f(18.5, 0, 0);
+    wall3->rotation = Eigen::Vector3f(0, -90, 0);
+    wall3->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
+        *wall3->mesh, pxl::ColliderComponent::kStatic));
+
+    auto wall4 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("block_wall.obj"));
+    wall4->Bind();
+    wall4->position = Eigen::Vector3f(-18.5, 0, 0);
+    wall4->rotation = Eigen::Vector3f(0, 90, 0);
+    wall4->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
+        *wall4->mesh, pxl::ColliderComponent::kStatic));
+
+    auto tree = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("tree_standee.obj"));
+    tree->Bind();
+    tree->position = Eigen::Vector3f(-0, 0, 10);
+    tree->rotation = Eigen::Vector3f(0, 180, 0);
+    tree->AddComponent(std::make_shared<pxl::HullCollider>(
+        *tree->mesh, pxl::ColliderComponent::kStatic));
+
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
+    scene->entities.push_back(wall1);
+    scene->entities.push_back(wall2);
+    scene->entities.push_back(wall3);
+    scene->entities.push_back(wall4);
+    scene->entities.push_back(tree);
     scene->entities.push_back(ramp);
     scene->entities.push_back(slight_ramp);
     scene->entities.push_back(player);
     scene->entities.push_back(empty);
-    scene->entities.push_back(camera);
-    scene->entities.push_back(aesthetic_camera);
+    // scene->entities.push_back(camera);
+    // scene->entities.push_back(aesthetic_camera);
     // scene->entities.push_back(mesh);
     scene->entities.push_back(ground);
     scene->entities.push_back(light);
