@@ -204,10 +204,26 @@ class ThesisDemo : public pxl::Game {
     auto tree = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
         GetMeshPath("tree_standee.obj"));
     tree->Bind();
-    tree->position = Eigen::Vector3f(-0, 0, 10);
-    tree->rotation = Eigen::Vector3f(0, 180, 0);
+    tree->position = Eigen::Vector3f(-6, 0, 6);
+    tree->rotation = Eigen::Vector3f(0, 150, 0);
     tree->AddComponent(std::make_shared<pxl::HullCollider>(
         *tree->mesh, pxl::ColliderComponent::kStatic));
+
+    auto car = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("toon_car.obj"));
+    car->Bind();
+    car->position = Eigen::Vector3f(6.2, 0, 1);
+    car->rotation.y() = -25;
+    car->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
+        *car->mesh, pxl::ColliderComponent::kStatic));
+
+    auto books = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
+        GetMeshPath("book_track.obj"));
+    books->Bind();
+    books->position = Eigen::Vector3f(10, 0, -5);
+    books->rotation.y() = 12;
+    books->AddComponent(std::make_shared<pxl::HullCollider>(
+        *books->mesh, pxl::ColliderComponent::kStatic));
 
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
@@ -216,10 +232,12 @@ class ThesisDemo : public pxl::Game {
     scene->entities.push_back(wall3);
     scene->entities.push_back(wall4);
     scene->entities.push_back(tree);
-    scene->entities.push_back(ramp);
-    scene->entities.push_back(slight_ramp);
+    // scene->entities.push_back(ramp);
+    scene->entities.push_back(car);
+    // scene->entities.push_back(slight_ramp);
     scene->entities.push_back(player);
     scene->entities.push_back(empty);
+    scene->entities.push_back(books);
     // scene->entities.push_back(camera);
     // scene->entities.push_back(aesthetic_camera);
     // scene->entities.push_back(mesh);
