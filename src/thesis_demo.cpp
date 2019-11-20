@@ -174,32 +174,32 @@ class ThesisDemo : public pxl::Game {
         *cards->mesh, pxl::ColliderComponent::kStatic));
 
     auto wall1 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-        GetMeshPath("block_wall.obj"));
+        GetMeshPath("block_wall_big.obj"));
     wall1->Bind();
-    wall1->position = Eigen::Vector3f(0, 0, -19);
+    wall1->position = Eigen::Vector3f(0, 0, -27);
     wall1->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
         *wall1->mesh, pxl::ColliderComponent::kStatic));
 
     auto wall2 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-        GetMeshPath("block_wall.obj"));
+        GetMeshPath("block_wall_big.obj"));
     wall2->Bind();
-    wall2->position = Eigen::Vector3f(0, 0, 19);
+    wall2->position = Eigen::Vector3f(0, 0, 27);
     wall2->rotation = Eigen::Vector3f(0, 180, 0);
     wall2->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
         *wall2->mesh, pxl::ColliderComponent::kStatic));
 
     auto wall3 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-        GetMeshPath("block_wall.obj"));
+        GetMeshPath("block_wall_big.obj"));
     wall3->Bind();
-    wall3->position = Eigen::Vector3f(18.5, 0, 0);
+    wall3->position = Eigen::Vector3f(25, 0, 0);
     wall3->rotation = Eigen::Vector3f(0, -90, 0);
     wall3->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
         *wall3->mesh, pxl::ColliderComponent::kStatic));
 
     auto wall4 = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-        GetMeshPath("block_wall.obj"));
+        GetMeshPath("block_wall_big.obj"));
     wall4->Bind();
-    wall4->position = Eigen::Vector3f(-18.5, 0, 0);
+    wall4->position = Eigen::Vector3f(-25, 0, 0);
     wall4->rotation = Eigen::Vector3f(0, 90, 0);
     wall4->AddComponent(std::make_shared<pxl::CombinedHullCollider>(
         *wall4->mesh, pxl::ColliderComponent::kStatic));
