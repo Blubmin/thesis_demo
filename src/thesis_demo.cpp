@@ -41,6 +41,9 @@ boost::filesystem::path GetResourcePath() {
 boost::filesystem::path GetMeshPath(const std::string& mesh_file) {
   return GetResourcePath() / "meshes" / mesh_file;
 }
+boost::filesystem::path GetImagePath(const std::string& mesh_file) {
+  return GetResourcePath() / "images" / mesh_file;
+}
 boost::filesystem::path GetShaderPath(const std::string& shader_file) {
   return GetResourcePath() / "shaders" / shader_file;
 }
@@ -54,6 +57,9 @@ class ThesisDemo : public pxl::Game {
                      GLFW_CURSOR_DISABLED);
 
     main_camera = true;
+
+    reticle_tex = std::make_shared<pxl::OglTexture2d>(GetImagePath("reticle.png"));
+    reticle_tex->Bind();
 
     empty = std::make_shared<pxl::Empty>();
     empty->AddComponent(std::make_shared<CircularMovementComponent>());
@@ -350,6 +356,14 @@ class ThesisDemo : public pxl::Game {
     // Draw scene from primary camera
     scene->camera = camera;
     pxl::SceneRenderer::RenderScene(*scene, framebuffers[0]);
+    glEnable(GL_BLEND);
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *reticle_tex,
+        Eigen::Rectf(
+            Eigen::Vector2f(.5f - .015 / pxl::Game::State.GetAspectRatio(), .485f),
+            Eigen::Vector2f(.5f +  .015 / pxl::Game::State.GetAspectRatio(),
+                            .515f)));
+    glDisable(GL_BLEND);
     framebuffers[0]->End();
 
     // Draw scene from aesthetic camera
@@ -436,6 +450,7 @@ class ThesisDemo : public pxl::Game {
   std::shared_ptr<pxl::MeshEntity> player;
   std::shared_ptr<pxl::Program> prog;
   std::vector<std::shared_ptr<pxl::PointLight>> point_lights;
+  std::shared_ptr<pxl::OglTexture2d> reticle_tex;
 
   std::shared_ptr<AiManager> ai_manager;
 };
