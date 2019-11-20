@@ -86,29 +86,32 @@ class ThesisDemo : public pxl::Game {
     aesthetic_camera_component->SetPlayer(mesh);
     aesthetic_camera->AddComponent(aesthetic_camera_component);
 
-    framebuffers =
-        std::make_pair(std::make_shared<pxl::OglFramebuffer>(1920, 1080),
-                       std::make_shared<pxl::OglFramebuffer>(1920, 1080));
-    framebuffers.first->Bind();
-    framebuffers.second->Bind();
+    framebuffers.push_back(std::make_shared<pxl::OglFramebuffer>(1920, 1080));
+    framebuffers.push_back(std::make_shared<pxl::OglFramebuffer>(1920, 1080));
+    framebuffers.push_back(std::make_shared<pxl::OglFramebuffer>(1920, 1080));
+    framebuffers.push_back(std::make_shared<pxl::OglFramebuffer>(1920, 1080));
+    for (auto fb : framebuffers) {
+      fb->Bind();
+    }
     viewport_framebuffer = std::make_shared<pxl::OglFramebuffer>(1920, 1080);
     viewport_framebuffer->Bind();
 
-    point_lights.emplace_back(new pxl::PointLight(pxl::Color(1.f, .0f, .0f)));
-    point_lights.back()->position += Eigen::Vector3f(4.f, 2.f, 0.f);
-    point_lights.emplace_back(new pxl::PointLight(pxl::Color(.0f, .0f, 1.f)));
-    point_lights.back()->position += Eigen::Vector3f(-4.f, 2.f, 0.f);
-    point_lights.emplace_back(new pxl::PointLight(pxl::Color(.0f, 1.f, .0f)));
-    point_lights.back()->position += Eigen::Vector3f(-8.f, 2.f, 0.f);
-    point_lights.emplace_back(new pxl::PointLight(pxl::Color(.5f, .0f, 1.f)));
-    point_lights.back()->position += Eigen::Vector3f(8.f, 2.f, 0.f);
+    // point_lights.emplace_back(new pxl::PointLight(pxl::Color(1.f, .0f,
+    // .0f))); point_lights.back()->position += Eigen::Vector3f(4.f, 2.f, 0.f);
+    // point_lights.emplace_back(new pxl::PointLight(pxl::Color(.0f,
+    // .0f, 1.f))); point_lights.back()->position += Eigen::Vector3f(-4.f, 2.f,
+    // 0.f); point_lights.emplace_back(new pxl::PointLight(pxl::Color(.0f, 1.f,
+    // .0f))); point_lights.back()->position += Eigen::Vector3f(-8.f, 2.f, 0.f);
+    // point_lights.emplace_back(new pxl::PointLight(pxl::Color(.5f,
+    // .0f, 1.f))); point_lights.back()->position += Eigen::Vector3f(8.f, 2.f,
+    // 0.f);
 
-    auto light = std::make_shared<pxl::PointLight>(pxl::Color(1.f, 1.f, 1.f));
-    light->position += Eigen::Vector3f(1.f, 1.f, 1.f);
+    // auto light = std::make_shared<pxl::PointLight>(pxl::Color(1.f,
+    // 1.f, 1.f)); light->position += Eigen::Vector3f(1.f, 1.f, 1.f);
 
-    auto light2 = std::make_shared<pxl::PointLight>(pxl::Color(1.f, .5f, 0.f));
-    light2->position += Eigen::Vector3f(1.f, 1.f, 1.f);
-    light->AddChild(light2);
+    // auto light2 = std::make_shared<pxl::PointLight>(pxl::Color(1.f, .5f,
+    // 0.f)); light2->position += Eigen::Vector3f(1.f, 1.f, 1.f);
+    // light->AddChild(light2);
 
     auto dir_light =
         std::make_shared<pxl::DirectionalLight>(Eigen::Vector3f(1, -1, 1));
@@ -225,6 +228,18 @@ class ThesisDemo : public pxl::Game {
     books->AddComponent(std::make_shared<pxl::HullCollider>(
         *books->mesh, pxl::ColliderComponent::kStatic));
 
+    behind_camera = std::make_shared<pxl::Camera>();
+    behind_camera->position = Eigen::Vector3f(0, 2.5, -2);
+    behind_camera->rotation.y() = 180;
+    behind_camera->rotation.x() = -19;
+    player->AddChild(behind_camera);
+
+    overhead_camera= std::make_shared<pxl::Camera>();
+    overhead_camera->position = Eigen::Vector3f(0, 7, 0);
+    overhead_camera->rotation.y() = 180;
+    overhead_camera->rotation.x() = -90;
+    player->AddChild(overhead_camera);
+
     scene = std::make_shared<pxl::Scene>();
     scene->camera = camera;
     scene->entities.push_back(wall1);
@@ -242,8 +257,8 @@ class ThesisDemo : public pxl::Game {
     // scene->entities.push_back(aesthetic_camera);
     // scene->entities.push_back(mesh);
     scene->entities.push_back(ground);
-    scene->entities.push_back(light);
-    scene->entities.push_back(light2);
+    // scene->entities.push_back(light);
+    // scene->entities.push_back(light2);
     scene->entities.push_back(dir_light);
     scene->entities.push_back(block);
     scene->entities.push_back(block_H);
@@ -267,7 +282,7 @@ class ThesisDemo : public pxl::Game {
     static float gamma = 2.2f;
     ai_manager->Update(time_elapsed);
     scene->Update(time_elapsed);
-    framebuffers.first->Begin();
+    framebuffers[0]->Begin();
     // prog->Bind();
     if (ImGui::Begin("Property")) {
       ImGui::DragFloat3("Position", mesh->position.data());
@@ -334,19 +349,35 @@ class ThesisDemo : public pxl::Game {
 
     // Draw scene from primary camera
     scene->camera = camera;
-    pxl::SceneRenderer::RenderScene(*scene, framebuffers.first);
-    framebuffers.first->End();
+    pxl::SceneRenderer::RenderScene(*scene, framebuffers[0]);
+    framebuffers[0]->End();
 
     // Draw scene from aesthetic camera
-    framebuffers.second->Begin();
+    framebuffers[1]->Begin();
     aesthetic_camera->Update(time_elapsed);
     scene->camera = aesthetic_camera;
-    pxl::SceneRenderer::RenderScene(*scene, framebuffers.second);
-    framebuffers.second->End();
+    pxl::SceneRenderer::RenderScene(*scene, framebuffers[1]);
+    framebuffers[1]->End();
+
+    // Draw scene from 3rd person camera
+    framebuffers[2]->Begin();
+    aesthetic_camera->Update(time_elapsed);
+    scene->camera = behind_camera;
+    pxl::SceneRenderer::RenderScene(*scene, framebuffers[2]);
+    framebuffers[2]->End();
+
+    // Draw scene from overhead camera
+    framebuffers[3]->Begin();
+    aesthetic_camera->Update(time_elapsed);
+    scene->camera = overhead_camera;
+    pxl::SceneRenderer::RenderScene(*scene, framebuffers[3]);
+    framebuffers[3]->End();
 
     // Draw final results to back buffer
-    std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers.first;
-    std::shared_ptr<pxl::OglFramebuffer> sub_viewport = framebuffers.second;
+    std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers[0];
+    std::shared_ptr<pxl::OglFramebuffer> sub_viewport = framebuffers[1];
+    std::shared_ptr<pxl::OglFramebuffer> sub_sub_viewport = framebuffers[2];
+    std::shared_ptr<pxl::OglFramebuffer> sub_sub_sub_viewport = framebuffers[3];
 
     if (!main_camera) {
       std::swap(main_viewport, sub_viewport);
@@ -372,7 +403,7 @@ class ThesisDemo : public pxl::Game {
     // pixel.w()); ImGui::EndTooltip();
 
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *main_viewport->GetColorAttachment(0));
+        *main_viewport->GetColorAttachment(0), Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
     //    *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
@@ -381,16 +412,22 @@ class ThesisDemo : public pxl::Game {
     //         ->diffuse_texture);
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(.73, .035), Eigen::Vector2f(.98, .285)));
+        Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *sub_sub_viewport->GetColorAttachment(0),
+        Eigen::Rectf(Eigen::Vector2f(0, .5), Eigen::Vector2f(.5, 1)));
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *sub_sub_sub_viewport->GetColorAttachment(0),
+        Eigen::Rectf(Eigen::Vector2f(.5, .5), Eigen::Vector2f(1, 1)));
   }
 
   bool main_camera;
-  std::pair<std::shared_ptr<pxl::OglFramebuffer>,
-            std::shared_ptr<pxl::OglFramebuffer>>
-      framebuffers;
+  std::vector<std::shared_ptr<pxl::OglFramebuffer>> framebuffers;
   std::shared_ptr<pxl::OglFramebuffer> viewport_framebuffer;
   std::shared_ptr<pxl::Camera> camera;
   std::shared_ptr<pxl::Camera> aesthetic_camera;
+  std::shared_ptr<pxl::Camera> behind_camera;
+  std::shared_ptr<pxl::Camera> overhead_camera;
   std::shared_ptr<pxl::Scene> scene;
   std::shared_ptr<pxl::Empty> empty;
   std::shared_ptr<pxl::MeshEntity> mesh;

@@ -9,6 +9,7 @@
 #include <pixel_engine/camera.h>
 #include <pixel_engine/eigen_utilities.h>
 #include <pixel_engine/game.h>
+#include <pixel_engine/physics_component.h>
 
 class AestheticCostFunction {
  public:
@@ -112,7 +113,9 @@ AestheticCameraComponent::AestheticCameraComponent()
   }
 }
 
-void AestheticCameraComponent::Update(float time_elapsed) {}
+void AestheticCameraComponent::Update(float time_elapsed) {
+  time_elapsed_ = time_elapsed;
+}
 
 void AestheticCameraComponent::SetTarget(std::weak_ptr<pxl::Entity> target) {
   target_ = target;
@@ -125,11 +128,16 @@ void AestheticCameraComponent::SetPlayer(std::weak_ptr<pxl::Entity> player) {
 
 std::function<void()> AestheticCameraComponent::RunSolver() {
   Eigen::Matrix4f player_transform = player_.lock()->GetTransform();
+  /*Eigen::Vector3f player_velocity =
+      player_.lock()->GetComponent<pxl::PhysicsComponent>()->velocity;
+  player_transform.block<3, 1>(0, 3) =
+      Eigen::GetPosition(player_transform) + player_velocity * time_elapsed_;*/
   Eigen::Matrix4f camera_transform = owner.lock()->GetTransform();
   Eigen::Matrix4f perspective_transform =
       std::dynamic_pointer_cast<pxl::Camera>(owner.lock())->GetPerspective();
   Eigen::Vector3f camera_rotation = owner.lock()->rotation;
   Eigen::Matrix4f target_transform = target_.lock()->GetTransform();
+
   return [=]() mutable {
     ceres::Problem problem;
 

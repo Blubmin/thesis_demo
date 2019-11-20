@@ -3,8 +3,9 @@
     "",
     "\\pixel_engine",
     "\\pixel_engine\\pixel_engine",
+    "\\pixel_engine\\pixel_engine\\shaders",
     "\\src"
   ],
-  "SelectedNode": "\\pixel_engine\\CMakeLists.txt",
+  "SelectedNode": "\\pixel_engine\\pixel_engine\\shaders\\shadow.vert",
   "PreviewInSolutionExplorer": false
 }
