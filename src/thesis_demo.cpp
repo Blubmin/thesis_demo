@@ -417,7 +417,7 @@ class ThesisDemo : public pxl::Game {
     // pixel.w()); ImGui::EndTooltip();
 
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *main_viewport->GetColorAttachment(0), Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
+        *main_viewport->GetColorAttachment(0), Eigen::Rectf(Eigen::Vector2f(0, .5), Eigen::Vector2f(.5, 1)));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
     //    *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
@@ -426,13 +426,13 @@ class ThesisDemo : public pxl::Game {
     //         ->diffuse_texture);
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
+        Eigen::Rectf(Eigen::Vector2f(.5, .5), Eigen::Vector2f(1, 1)));
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *sub_sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(0, .5), Eigen::Vector2f(.5, 1)));
+        Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *sub_sub_sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(.5, .5), Eigen::Vector2f(1, 1)));
+        Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
   }
 
   bool main_camera;
