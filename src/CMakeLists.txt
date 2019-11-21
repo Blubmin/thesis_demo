@@ -7,6 +7,8 @@ add_executable(thesis_demo
 	circular_movement_component.h
 	planar_movement_component.cpp
 	planar_movement_component.h
+	shooting_component.cpp
+	shooting_component.h
     thesis_demo.cpp
 )
 

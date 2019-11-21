@@ -56,7 +56,7 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
     mesh->AddComponent(std::make_shared<pxl::CapsuleCollider>(
         .35f, 1.8f, pxl::ColliderComponent::kDynamic));
     red_team_[i] = mesh;
-    scene_->entities.push_back(red_team_[i]);
+    scene_->AddEntity(red_team_[i]);
     if (i == 0) {
       red_leader_ = mesh;
     }
