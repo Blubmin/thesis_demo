@@ -54,6 +54,36 @@ class RandomRotatingComponent : public pxl::Component {
   Eigen::Vector3f axis_;
   float rotation_speed_;
 };
+
+// If the ball collides with anything, remove it from the game after a fixed set
+// of time
+class BallPopCollisionResponse : public pxl::CollisionResponse {
+  const float kTimerMax = .5;
+
+ public:
+  BallPopCollisionResponse() : has_collided(false), collision_timer(0) {}
+
+  void Update(float time_elapsed) override {
+    if (has_collided) {
+      collision_timer += time_elapsed;
+    }
+    if (collision_timer > kTimerMax) {
+      GetOwner()->RemoveFromScene();
+    }
+    auto mesh = GetOwner()->GetComponent<pxl::MeshEntity>();
+    if (mesh != nullptr) {
+      mesh->mesh->opacity = 1 - (collision_timer / kTimerMax);
+    }
+  }
+
+  void Respond(btManifoldPoint& pt, const btCollisionObject* this_object,
+               const btCollisionObject* other_object) override {
+    has_collided = true;
+  }
+
+  bool has_collided;
+  float collision_timer;
+};
 }  // namespace
 
 ShootingComponent::ShootingComponent() : ShootingComponent(nullptr) {}
@@ -84,6 +114,8 @@ std::shared_ptr<pxl::Entity> ShootingComponent::CreateBall() {
   ball->AddComponent(std::make_shared<RandomRotatingComponent>());
   ball->AddComponent(std::make_shared<pxl::SphereCollider>(
       .2, pxl::ColliderComponent::kDynamic));
+
+  ball->AddComponent(std::make_shared<BallPopCollisionResponse>());
 
   return ball;
 }

@@ -234,8 +234,7 @@ class ThesisDemo : public pxl::Game {
     player->AddChild(behind_camera);
 
     overhead_camera = std::make_shared<pxl::Camera>();
-    overhead_camera->position = Eigen::Vector3f(0, 10, 0);
-    overhead_camera->fov = 100;
+    overhead_camera->position = Eigen::Vector3f(0, 12, 0);
     overhead_camera->rotation.y() = 180;
     overhead_camera->rotation.x() = -90;
     player->AddChild(overhead_camera);
