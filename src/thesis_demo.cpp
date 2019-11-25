@@ -78,6 +78,8 @@ class ThesisDemo : public pxl::Game {
         GetMeshPath("wood/wood.obj"));
     ground->Bind();
     ground->position -= Eigen::Vector3f(0.f, 0.01f, 0.f);
+    ground->AddComponent(std::make_shared<pxl::PlaneCollider>(
+        Eigen::Vector3f::UnitY(), 0, pxl::ColliderComponent::kStatic));
     // ground->scale = Eigen::Vector3f(50.f, 50.f, 1.f);
     // ground->rotation.x() = -90;
 
@@ -271,7 +273,7 @@ class ThesisDemo : public pxl::Game {
 
     ai_manager = std::make_shared<AiManager>(scene, player);
     aesthetic_camera_component->SetPlayer(player);
-    aesthetic_camera_component->SetTarget(ai_manager->red_leader_);
+    aesthetic_camera_component->SetManager(ai_manager);
     pxl::Game::BackgroundThreadPool.Post(
         aesthetic_camera_component->RunSolver());
 
@@ -304,7 +306,7 @@ class ThesisDemo : public pxl::Game {
       auto aesthetic_camera_component =
           aesthetic_camera->GetComponent<AestheticCameraComponent>();
       if (aesthetic_camera_component != nullptr) {
-        for (int i = 0;
+        /*for (int i = 0;
              i < aesthetic_camera_component->constant_residuals.size(); ++i) {
           boost::format label("Residual %d");
           label % i;
@@ -312,7 +314,7 @@ class ThesisDemo : public pxl::Game {
           if (ImGui::Checkbox(label.str().c_str(), &val)) {
             aesthetic_camera_component->constant_residuals[i] = val;
           }
-        }
+        }*/
 
         // Draw checkboxes to disable parameters
         for (int i = 0;
@@ -332,6 +334,18 @@ class ThesisDemo : public pxl::Game {
     ImGui::DragFloat("Clustering Distance", &ai_manager->clustering_distance);
     ImGui::DragFloat("Clustering", &ai_manager->clustering);
     ImGui::DragFloat("Max Speed", &ai_manager->max_speed);
+
+    for (int i = 0; i < ai_manager->red_team_.size(); ++i) {
+      auto tmp = ai_manager->red_team_[i];
+      auto enemy = tmp.lock();
+      ImGui::PushID(("enemy" + std::to_string(i)).c_str());
+      ImGui::Checkbox("##disable", &enemy->disable);
+      ImGui::SameLine();
+      boost::format fmt("Enemy %d");
+      fmt % i;
+      ImGui::DragFloat(fmt.str().c_str(), &enemy->weight);
+      ImGui::PopID();
+    }
 
     ImGui::End();
 

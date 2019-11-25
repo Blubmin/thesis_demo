@@ -6,6 +6,11 @@
 
 #include <pixel_engine/scene.h>
 
+class Beachball : public pxl::MeshEntity {
+ public:
+  Beachball();
+};
+
 class ShootingComponent : public pxl::Component {
  public:
   ShootingComponent();

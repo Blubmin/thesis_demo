@@ -9,6 +9,8 @@
 #include <pixel_engine/physics_component.h>
 #include <boost/filesystem.hpp>
 
+#include "shooting_component.h"
+
 namespace {
 const int32_t kTeamSize = 5;
 
@@ -19,6 +21,23 @@ boost::filesystem::path GetResourcePath() {
 boost::filesystem::path GetMeshPath(const std::string& mesh_file) {
   return GetResourcePath() / "meshes" / mesh_file;
 }
+
+class DeathCollisionResponse : public pxl::CollisionResponse {
+ public:
+  DeathCollisionResponse(AiManager& manager) : manager_(manager) {}
+
+  void Respond(btManifoldPoint& pt, const btCollisionObject* owner,
+               const btCollisionObject* other) override {
+    auto entity = (pxl::Entity*)other->getUserPointer();
+    auto bb = dynamic_cast<Beachball*>(entity);
+    if (bb != nullptr) {
+      GetOwner()->RemoveFromScene();
+    }
+  }
+
+ private:
+  AiManager& manager_;
+};
 }  // namespace
 
 class BoidComponent : public pxl::Component {
@@ -33,6 +52,13 @@ class BoidComponent : public pxl::Component {
   Eigen::Vector3f acceleration;
 };
 
+Enemy::Enemy()
+    : pxl::MeshEntity(pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
+          GetMeshPath("army_man_standing_scaled.obj"))),
+      weight(1),
+      disable(false) {
+}
+
 AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
                      std::shared_ptr<pxl::Entity> player)
     : separation_distance(1.2),
@@ -44,21 +70,20 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
       player_(player),
       red_team_(kTeamSize) {
   for (int32_t i = 0; i < kTeamSize; ++i) {
-    std::shared_ptr<pxl::MeshEntity> mesh =
-        pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-            GetMeshPath("army_man_standing_scaled.obj"));
-    mesh->Bind();
-    mesh->position = Eigen::Vector3f(-i, 0, -5);
+    std::shared_ptr<Enemy> enemy = std::make_shared<Enemy>();
+    enemy->position = Eigen::Vector3f(-i, 0, -5);
+    enemy->Bind();
     // mesh->mesh->materials[0]->diffuse = Eigen::Vector3f(1, i == 0 ? .15 : 0,
     // 0);
-    mesh->AddComponent(std::make_shared<BoidComponent>());
-    mesh->AddComponent(std::make_shared<pxl::PhysicsComponent>());
-    mesh->AddComponent(std::make_shared<pxl::CapsuleCollider>(
+    enemy->AddComponent(std::make_shared<BoidComponent>());
+    enemy->AddComponent(std::make_shared<pxl::PhysicsComponent>());
+    enemy->AddComponent(std::make_shared<pxl::CapsuleCollider>(
         .35f, 1.8f, pxl::ColliderComponent::kDynamic));
-    red_team_[i] = mesh;
-    scene_->AddEntity(red_team_[i]);
+    // mesh->AddComponent(std::make_shared<DeathCollisionResponse>());
+    red_team_[i] = enemy;
+    scene_->AddEntity(enemy);
     if (i == 0) {
-      red_leader_ = mesh;
+      // red_leader_ = mesh;
     }
   }
 }
@@ -80,7 +105,8 @@ Eigen::Vector3f AiManager::ComputeSeparation(
   Eigen::Vector3f separation_vec = Eigen::Vector3f::Zero();
   int32_t count = 0;
 
-  for (auto other_unit : red_team_) {
+  for (auto tmp : red_team_) {
+    auto other_unit = tmp.lock();
     if (unit == other_unit) {
       continue;
     }
@@ -109,7 +135,8 @@ Eigen::Vector3f AiManager::ComputeClustering(
   Eigen::Vector3f position = Eigen::Vector3f::Zero();
   int32_t count = 0;
 
-  for (auto other_unit : red_team_) {
+  for (auto tmp : red_team_) {
+    auto other_unit = tmp.lock();
     if (unit == other_unit) {
       continue;
     }
@@ -128,15 +155,19 @@ Eigen::Vector3f AiManager::ComputeClustering(
 }
 
 void AiManager::Update(float time_elapsed) {
-  for (auto unit : red_team_) {
+  for (auto tmp : red_team_) {
+    auto unit = tmp.lock();
+    if (unit == nullptr) {
+      continue;
+    }
     auto boid = unit->GetComponent<BoidComponent>();
 
     // Follow the leader
-    if (unit != red_leader_) {
+    /*if (unit != red_leader_) {
       boid->acceleration += Seek(unit, red_leader_->position);
-    } else {
-      boid->acceleration += Seek(unit, player_->position) * 10.0;
-    }
+    } else {*/
+    boid->acceleration += Seek(unit, player_->position) * 10.0;
+    // }
     boid->acceleration += ComputeClustering(unit) * clustering;
     boid->acceleration += ComputeSeparation(unit) * separation;
     boid->velocity += boid->acceleration * time_elapsed;
@@ -151,7 +182,8 @@ void AiManager::Update(float time_elapsed) {
     }
   }
 
-  for (auto unit : red_team_) {
+  for (auto tmp : red_team_) {
+    auto unit = tmp.lock();
     auto boid = unit->GetComponent<BoidComponent>();
     unit->position += boid->velocity * time_elapsed;
     boid->acceleration *= 0;

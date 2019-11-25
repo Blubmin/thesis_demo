@@ -102,6 +102,106 @@ class AestheticCostFunction {
   std::vector<bool> constant_residuals_;
 };
 
+class DistanceCostFunction {
+ public:
+  DistanceCostFunction(Eigen::Vector3f target_position, float target_distance)
+      : target_position(target_position), target_distance(target_distance) {}
+
+  template <typename T>
+  bool operator()(const T* const x, const T* const y, const T* const z,
+                  T* residuals) const {
+    residuals[0] =
+        (Eigen::Vector3<T>(*x, *y, *z) - target_position.cast<T>()).norm() -
+        T(target_distance);
+
+    return true;
+  }
+
+  static ceres::CostFunction* Create(Eigen::Vector3f target_position,
+                                     float target_distance) {
+    ceres::AutoDiffCostFunction<DistanceCostFunction, 1, 1, 1, 1>*
+        cost_function =
+            new ceres::AutoDiffCostFunction<DistanceCostFunction, 1, 1, 1, 1>(
+                new DistanceCostFunction(target_position, target_distance));
+    return cost_function;
+  }
+
+ private:
+  Eigen::Vector3f target_position;
+  float target_distance;
+};
+
+class TargetCostFunction {
+ public:
+  TargetCostFunction(Eigen::Matrix4f perspective_transform,
+                     Eigen::Matrix4f target_transform,
+                     Eigen::Vector2f target_projected, float weight)
+      : perspective_transform(perspective_transform),
+        target_transform(target_transform),
+        target_projected(target_projected),
+        weight(weight) {}
+
+  template <typename T>
+  bool operator()(const T* const x, const T* const y, const T* const z,
+                  const T* const pitch, const T* const yaw,
+                  T* residuals) const {
+    // Get positions
+    Eigen::Vector4<T> target_pos =
+        target_transform.cast<T>() * Eigen::Vector4f(0, 0, 0, 1).cast<T>();
+
+    Eigen::Vector3<T> camera_pos(*x, *y, *z);
+    Eigen::Quaternion<T> rotation =
+        Eigen::AngleAxis<T>(*yaw, Eigen::Vector3<T>::UnitY()) *
+        Eigen::AngleAxis<T>(*pitch, Eigen::Vector3<T>::UnitX());
+
+    Eigen::Isometry3<T> camera_T_world = Eigen::Isometry3<T>::Identity();
+    camera_T_world.translation() = camera_pos;
+    camera_T_world.linear() = rotation.toRotationMatrix();
+
+    camera_T_world = camera_T_world.inverse();
+
+    Eigen::Vector4<T> norm_target_pos =
+        perspective_transform.cast<T>() * camera_T_world.matrix() * target_pos;
+
+    residuals[0] = ((norm_target_pos[0] / norm_target_pos[3]) -
+                   target_projected.cast<T>().x()) * T(weight);
+    residuals[1] = ((norm_target_pos[1] / norm_target_pos[3]) -
+                   target_projected.cast<T>().y()) * T(weight);
+
+    if (norm_target_pos[2] < 0.0) {
+      residuals[0] = T(100.0);
+      residuals[1] = T(100.0);
+    }
+
+    // for (int i = 0; i < constant_residuals_.size(); ++i) {
+    //  if (constant_residuals_[i]) {
+    //    residuals[i] = T(0.0);
+    //  }
+    //}
+
+    return true;
+  };
+
+  static ceres::CostFunction* Create(
+      const Eigen::Matrix4f& perspective_transform,
+      const Eigen::Matrix4f& target_transform,
+      Eigen::Vector2f target_projection,
+      float weight) {
+    ceres::AutoDiffCostFunction<TargetCostFunction, 2, 1, 1, 1, 1,
+                                1>* cost_function =
+        new ceres::AutoDiffCostFunction<TargetCostFunction, 2, 1, 1, 1, 1, 1>(
+            new TargetCostFunction(perspective_transform, target_transform,
+                                   target_projection, weight));
+    return cost_function;
+  }
+
+ private:
+  Eigen::Matrix4f perspective_transform;
+  Eigen::Matrix4f target_transform;
+  Eigen::Vector2f target_projected;
+  float weight;
+};
+
 AestheticCameraComponent::AestheticCameraComponent()
     : constant_residuals(8), constant_parameters(5) {
   for (auto& val : constant_residuals) {
@@ -126,8 +226,13 @@ void AestheticCameraComponent::SetPlayer(std::weak_ptr<pxl::Entity> player) {
   prev_player_pos_ = player_.lock()->position;
 }
 
+void AestheticCameraComponent::SetManager(std::weak_ptr<AiManager> manager) {
+  manager_ = manager;
+}
+
 std::function<void()> AestheticCameraComponent::RunSolver() {
   Eigen::Matrix4f player_transform = player_.lock()->GetTransform();
+  player_transform.block<3, 1>(0, 3) += Eigen::Vector3f(0, .7, 0);
   /*Eigen::Vector3f player_velocity =
       player_.lock()->GetComponent<pxl::PhysicsComponent>()->velocity;
   player_transform.block<3, 1>(0, 3) =
@@ -136,7 +241,19 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
   Eigen::Matrix4f perspective_transform =
       std::dynamic_pointer_cast<pxl::Camera>(owner.lock())->GetPerspective();
   Eigen::Vector3f camera_rotation = owner.lock()->rotation;
-  Eigen::Matrix4f target_transform = target_.lock()->GetTransform();
+  // Eigen::Matrix4f target_transform = target_.lock()->GetTransform();
+  std::vector<Eigen::Matrix4f> target_transforms;
+  std::vector<float> weights;
+  for (auto tmp : manager_.lock()->red_team_) {
+    auto unit = tmp.lock();
+    if (unit->disable) {
+      continue;
+    }
+    auto transform = unit->GetTransform();
+    transform.block<3, 1>(0, 3) += Eigen::Vector3f(0, .7, 0);
+    target_transforms.push_back(transform);
+    weights.push_back(unit->weight);
+  }
 
   return [=]() mutable {
     ceres::Problem problem;
@@ -161,12 +278,30 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
     parameters[3] = camera_rotation.x() / 180 * M_PI;
     parameters[4] = camera_rotation.y() / 180 * M_PI;
 
-    auto cost =
-        AestheticCostFunction::Create(perspective_transform, player_transform,
-                                      target_transform, constant_residuals);
-    problem.AddResidualBlock(cost, NULL, parameters.data(),
+    // Adds cost function for each enemy
+    for (int i = 0; i < target_transforms.size(); ++i) {
+      auto transform = target_transforms.at(i);
+      auto cost = TargetCostFunction::Create(perspective_transform, transform,
+                                             Eigen::Vector2f(.33, .33), weights.at(i));
+      problem.AddResidualBlock(cost, NULL, parameters.data(),
+                               parameters.data() + 1, parameters.data() + 2,
+                               parameters.data() + 3, parameters.data() + 4);
+    }
+
+    // Adds player cost function
+    auto player_cost = TargetCostFunction::Create(
+        perspective_transform, player_transform, Eigen::Vector2f(-.33, -.33), 1);
+    problem.AddResidualBlock(player_cost, NULL, parameters.data(),
                              parameters.data() + 1, parameters.data() + 2,
                              parameters.data() + 3, parameters.data() + 4);
+
+    // Adds cost function for distance to player
+    auto distance_cost =
+        DistanceCostFunction::Create(Eigen::GetPosition(player_transform), 7);
+    problem.AddResidualBlock(distance_cost, NULL, parameters.data(),
+                             parameters.data() + 1, parameters.data() + 2);
+
+    // Keep rotations from flipping the camera upside-down
     problem.SetParameterLowerBound(parameters.data() + 3, 0, -M_PI_2);
     problem.SetParameterUpperBound(parameters.data() + 3, 0, M_PI_2);
 

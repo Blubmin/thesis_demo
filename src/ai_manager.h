@@ -5,6 +5,14 @@
 #include <pixel_engine/entity.h>
 #include <pixel_engine/scene.h>
 
+class Enemy : public pxl::MeshEntity {
+ public:
+   Enemy();
+
+   float weight;
+   bool disable;
+};
+
 class AiManager {
  public:
   AiManager(std::shared_ptr<pxl::Scene> scene,
@@ -28,8 +36,7 @@ class AiManager {
 
   std::shared_ptr<pxl::Scene> scene_;
   std::shared_ptr<pxl::Entity> player_;
-  std::vector<std::shared_ptr<pxl::Entity>> red_team_;
 
  public:
-  std::shared_ptr<pxl::Entity> red_leader_;
+  std::vector<std::weak_ptr<Enemy>> red_team_;
 };

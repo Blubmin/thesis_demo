@@ -70,10 +70,6 @@ class BallPopCollisionResponse : public pxl::CollisionResponse {
     if (collision_timer > kTimerMax) {
       GetOwner()->RemoveFromScene();
     }
-    auto mesh = GetOwner()->GetComponent<pxl::MeshEntity>();
-    if (mesh != nullptr) {
-      mesh->mesh->opacity = 1 - (collision_timer / kTimerMax);
-    }
   }
 
   void Respond(btManifoldPoint& pt, const btCollisionObject* this_object,
@@ -86,6 +82,11 @@ class BallPopCollisionResponse : public pxl::CollisionResponse {
 };
 }  // namespace
 
+Beachball::Beachball()
+    : pxl::MeshEntity(pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
+          GetMeshPath("beachball.obj"))) {
+}
+
 ShootingComponent::ShootingComponent() : ShootingComponent(nullptr) {}
 
 ShootingComponent::ShootingComponent(std::shared_ptr<pxl::Scene> scene)
@@ -96,8 +97,7 @@ std::shared_ptr<pxl::Entity> ShootingComponent::CreateBall() {
   auto forward = Eigen::GetZAxis(camera->GetTransform());
   forward *= -1;
 
-  auto ball = pxl::MeshLoader::LoadMeshEntity<pxl::OglMesh>(
-      GetMeshPath("beachball.obj"));
+  auto ball = std::make_shared<Beachball>();
   ball->Bind();
   ball->position = Eigen::GetPosition(camera->GetTransform());
   ball->scale = Eigen::Vector3f::Ones() * .2;

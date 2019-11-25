@@ -7,6 +7,8 @@
 #include <Eigen/Core>
 #include <boost/optional.hpp>
 
+#include "ai_manager.h"
+
 class AestheticCameraComponent : public pxl::Component {
  public:
   AestheticCameraComponent();
@@ -17,6 +19,7 @@ class AestheticCameraComponent : public pxl::Component {
 
   void SetTarget(std::weak_ptr<pxl::Entity> target);
   void SetPlayer(std::weak_ptr<pxl::Entity> player);
+  void SetManager(std::weak_ptr<AiManager> manager);
 
   std::vector<bool> constant_residuals;
   std::vector<bool> constant_parameters;
@@ -24,6 +27,7 @@ class AestheticCameraComponent : public pxl::Component {
  private:
   std::weak_ptr<pxl::Entity> player_;
   std::weak_ptr<pxl::Entity> target_;
+  std::weak_ptr<AiManager> manager_;
   float time_elapsed_;
 
   boost::optional<Eigen::Vector3f> prev_player_pos_;
