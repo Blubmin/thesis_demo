@@ -113,6 +113,7 @@ class DistanceCostFunction {
     residuals[0] =
         (Eigen::Vector3<T>(*x, *y, *z) - target_position.cast<T>()).norm() -
         T(target_distance);
+    residuals[0] *= residuals[0];
 
     return true;
   }
@@ -245,6 +246,9 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
   std::vector<Eigen::Matrix4f> target_transforms;
   std::vector<float> weights;
   for (auto tmp : manager_.lock()->red_team_) {
+    if (tmp.expired()) {
+      continue;
+    } 
     auto unit = tmp.lock();
     if (unit->disable) {
       continue;

@@ -57,6 +57,7 @@ class ThesisDemo : public pxl::Game {
     glfwSetInputMode(pxl::Game::State.window, GLFW_CURSOR,
                      GLFW_CURSOR_DISABLED);
 
+    hide_windows = false;
     paused = true;
     main_camera = true;
 
@@ -78,8 +79,6 @@ class ThesisDemo : public pxl::Game {
         GetMeshPath("wood/wood.obj"));
     ground->Bind();
     ground->position -= Eigen::Vector3f(0.f, 0.01f, 0.f);
-    ground->AddComponent(std::make_shared<pxl::PlaneCollider>(
-        Eigen::Vector3f::UnitY(), 0, pxl::ColliderComponent::kStatic));
     // ground->scale = Eigen::Vector3f(50.f, 50.f, 1.f);
     // ground->rotation.x() = -90;
 
@@ -238,7 +237,7 @@ class ThesisDemo : public pxl::Game {
     overhead_camera = std::make_shared<pxl::Camera>();
     overhead_camera->position = Eigen::Vector3f(0, 12, 0);
     overhead_camera->rotation.y() = 180;
-    overhead_camera->rotation.x() = -90;
+    overhead_camera->rotation.x() = -85;
     player->AddChild(overhead_camera);
 
     scene = std::make_shared<pxl::Scene>();
@@ -288,66 +287,69 @@ class ThesisDemo : public pxl::Game {
     }
     framebuffers[0]->Begin();
     // prog->Bind();
-    if (ImGui::Begin("Property")) {
-      ImGui::DragFloat3("Position", mesh->position.data());
-      ImGui::DragFloat3("Rotation", mesh->rotation.data());
-      ImGui::DragFloat3("Scale", mesh->scale.data());
-      ImGui::DragFloat("Gamma", &gamma, .01f);
+    if (!hide_windows) {
+      if (ImGui::Begin("Property")) {
+        // Draw checkboxes to disable residuals
+        auto aesthetic_camera_component =
+            aesthetic_camera->GetComponent<AestheticCameraComponent>();
+        if (aesthetic_camera_component != nullptr) {
+          /*for (int i = 0;
+               i < aesthetic_camera_component->constant_residuals.size(); ++i) {
+            boost::format label("Residual %d");
+            label % i;
+            bool val = aesthetic_camera_component->constant_residuals[i];
+            if (ImGui::Checkbox(label.str().c_str(), &val)) {
+              aesthetic_camera_component->constant_residuals[i] = val;
+            }
+          }*/
 
-      ImGui::Separator();
-      auto dir_light = scene->GetEntity<pxl::DirectionalLight>();
-      ImGui::TextUnformatted("Directional Light");
-      ImGui::DragFloat3("Direction", dir_light->direction.data());
-      ImGui::DragFloat("Strength", &dir_light->strength, .01f, 0.f, 100.f);
-      ImGui::ColorEdit3("Color", dir_light->color.data());
-      ImGui::Separator();
-
-      // Draw checkboxes to disable residuals
-      auto aesthetic_camera_component =
-          aesthetic_camera->GetComponent<AestheticCameraComponent>();
-      if (aesthetic_camera_component != nullptr) {
-        /*for (int i = 0;
-             i < aesthetic_camera_component->constant_residuals.size(); ++i) {
-          boost::format label("Residual %d");
-          label % i;
-          bool val = aesthetic_camera_component->constant_residuals[i];
-          if (ImGui::Checkbox(label.str().c_str(), &val)) {
-            aesthetic_camera_component->constant_residuals[i] = val;
-          }
-        }*/
-
-        // Draw checkboxes to disable parameters
-        for (int i = 0;
-             i < aesthetic_camera_component->constant_parameters.size(); ++i) {
-          boost::format label("Parameter %d");
-          label % i;
-          bool val = aesthetic_camera_component->constant_parameters[i];
-          if (ImGui::Checkbox(label.str().c_str(), &val)) {
-            aesthetic_camera_component->constant_parameters[i] = val;
-          }
+          // Draw checkboxes to disable parameters
+          // bool val = aesthetic_camera_component->constant_parameters[0];
+          // if (ImGui::Checkbox("X", &val)) {
+          //  aesthetic_camera_component->constant_parameters[0] = val;
+          //}
+          // val = aesthetic_camera_component->constant_parameters[1];
+          // if (ImGui::Checkbox("Y", &val)) {
+          //  aesthetic_camera_component->constant_parameters[1] = val;
+          //}
+          // val = aesthetic_camera_component->constant_parameters[2];
+          // if (ImGui::Checkbox("Z", &val)) {
+          //  aesthetic_camera_component->constant_parameters[2] = val;
+          //}
+          // val = aesthetic_camera_component->constant_parameters[3];
+          // if (ImGui::Checkbox("Pitch", &val)) {
+          //  aesthetic_camera_component->constant_parameters[3] = val;
+          //}
+          // val = aesthetic_camera_component->constant_parameters[4];
+          // if (ImGui::Checkbox("Yaw", &val)) {
+          //  aesthetic_camera_component->constant_parameters[4] = val;
+          //}
         }
       }
+
+      ImGui::DragFloat("Separation Distance", &ai_manager->separation_distance);
+      ImGui::DragFloat("Separation", &ai_manager->separation);
+      ImGui::DragFloat("Clustering Distance", &ai_manager->clustering_distance);
+      ImGui::DragFloat("Clustering", &ai_manager->clustering);
+      ImGui::DragFloat("Max Speed", &ai_manager->max_speed);
+
+      for (int i = 0; i < ai_manager->red_team_.size(); ++i) {
+        auto tmp = ai_manager->red_team_[i];
+        if (tmp.expired()) {
+          continue;
+        }
+        auto enemy = tmp.lock();
+        ImGui::PushID(("enemy" + std::to_string(i)).c_str());
+        ImGui::Checkbox("##disable", &enemy->disable);
+        ImGui::SameLine();
+        boost::format fmt("Enemy %d");
+        fmt % i;
+        ImGui::DragFloat(fmt.str().c_str(), &enemy->weight);
+        ImGui::PopID();
+      }
+
+      ImGui::End();
     }
-
-    ImGui::DragFloat("Separation Distance", &ai_manager->separation_distance);
-    ImGui::DragFloat("Separation", &ai_manager->separation);
-    ImGui::DragFloat("Clustering Distance", &ai_manager->clustering_distance);
-    ImGui::DragFloat("Clustering", &ai_manager->clustering);
-    ImGui::DragFloat("Max Speed", &ai_manager->max_speed);
-
-    for (int i = 0; i < ai_manager->red_team_.size(); ++i) {
-      auto tmp = ai_manager->red_team_[i];
-      auto enemy = tmp.lock();
-      ImGui::PushID(("enemy" + std::to_string(i)).c_str());
-      ImGui::Checkbox("##disable", &enemy->disable);
-      ImGui::SameLine();
-      boost::format fmt("Enemy %d");
-      fmt % i;
-      ImGui::DragFloat(fmt.str().c_str(), &enemy->weight);
-      ImGui::PopID();
-    }
-
-    ImGui::End();
 
     if (ImGui::IsKeyPressed(GLFW_KEY_SLASH)) {
       main_camera = !main_camera;
@@ -366,6 +368,12 @@ class ThesisDemo : public pxl::Game {
     if (ImGui::IsKeyDown(GLFW_KEY_LEFT_CONTROL) &&
         ImGui::IsKeyPressed(GLFW_KEY_P)) {
       paused = !paused;
+    }
+
+    if (ImGui::IsKeyDown(GLFW_KEY_LEFT_CONTROL) &&
+        ImGui::IsKeyPressed(GLFW_KEY_H)) {
+      hide_windows = !hide_windows;
+      show_fps = !show_fps;
     }
 
     // Draw scene from primary camera
@@ -469,6 +477,7 @@ class ThesisDemo : public pxl::Game {
     }
   }
 
+  bool hide_windows;
   bool paused;
   bool main_camera;
   std::vector<std::shared_ptr<pxl::OglFramebuffer>> framebuffers;

@@ -24,19 +24,15 @@ boost::filesystem::path GetMeshPath(const std::string& mesh_file) {
 
 class DeathCollisionResponse : public pxl::CollisionResponse {
  public:
-  DeathCollisionResponse(AiManager& manager) : manager_(manager) {}
-
   void Respond(btManifoldPoint& pt, const btCollisionObject* owner,
                const btCollisionObject* other) override {
-    auto entity = (pxl::Entity*)other->getUserPointer();
-    auto bb = dynamic_cast<Beachball*>(entity);
-    if (bb != nullptr) {
+    auto collider = (pxl::ColliderComponent*)other->getUserPointer();
+    auto bb = std::dynamic_pointer_cast<Beachball>(collider->GetOwner());
+    if (bb != nullptr && !bb->spent) {
       GetOwner()->RemoveFromScene();
+      bb->spent = true;
     }
   }
-
- private:
-  AiManager& manager_;
 };
 }  // namespace
 
@@ -55,9 +51,9 @@ class BoidComponent : public pxl::Component {
 Enemy::Enemy()
     : pxl::MeshEntity(pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
           GetMeshPath("army_man_standing_scaled.obj"))),
+      speed(2),
       weight(1),
-      disable(false) {
-}
+      disable(false) {}
 
 AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
                      std::shared_ptr<pxl::Entity> player)
@@ -79,7 +75,7 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
     enemy->AddComponent(std::make_shared<pxl::PhysicsComponent>());
     enemy->AddComponent(std::make_shared<pxl::CapsuleCollider>(
         .35f, 1.8f, pxl::ColliderComponent::kDynamic));
-    // mesh->AddComponent(std::make_shared<DeathCollisionResponse>());
+    enemy->AddComponent(std::make_shared<DeathCollisionResponse>());
     red_team_[i] = enemy;
     scene_->AddEntity(enemy);
     if (i == 0) {
@@ -90,11 +86,12 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
 
 Eigen::Vector3f AiManager::Seek(const std::shared_ptr<pxl::Entity> unit,
                                 const Eigen::Vector3f target) const {
+  auto enemy = std::dynamic_pointer_cast<Enemy>(unit);
   auto boid = unit->GetComponent<BoidComponent>();
 
   Eigen::Vector3f desired = target - unit->position;
   desired.normalize();
-  desired *= 1;
+  desired *= enemy->speed;
   Eigen::Vector3f steer = desired - boid->velocity;
   return steer.normalized();
 }
@@ -106,6 +103,9 @@ Eigen::Vector3f AiManager::ComputeSeparation(
   int32_t count = 0;
 
   for (auto tmp : red_team_) {
+    if (tmp.expired()) {
+      continue;
+    }
     auto other_unit = tmp.lock();
     if (unit == other_unit) {
       continue;
@@ -136,6 +136,9 @@ Eigen::Vector3f AiManager::ComputeClustering(
   int32_t count = 0;
 
   for (auto tmp : red_team_) {
+    if (tmp.expired()) {
+      continue;
+    }
     auto other_unit = tmp.lock();
     if (unit == other_unit) {
       continue;
@@ -155,11 +158,15 @@ Eigen::Vector3f AiManager::ComputeClustering(
 }
 
 void AiManager::Update(float time_elapsed) {
+  red_team_.erase(std::remove_if(red_team_.begin(), red_team_.end(),
+                                 [](auto a) { return a.expired(); }),
+                  red_team_.end());
+
   for (auto tmp : red_team_) {
-    auto unit = tmp.lock();
-    if (unit == nullptr) {
+    if (tmp.expired()) {
       continue;
     }
+    auto unit = tmp.lock();
     auto boid = unit->GetComponent<BoidComponent>();
 
     // Follow the leader
@@ -177,12 +184,15 @@ void AiManager::Update(float time_elapsed) {
     if (boid->velocity.z() < 0) {
       unit->rotation.y() += 180;
     }
-    if (boid->velocity.norm() > max_speed) {
-      boid->velocity = boid->velocity.normalized() * max_speed;
+    if (boid->velocity.norm() > unit->speed) {
+      boid->velocity = boid->velocity.normalized() * unit->speed;
     }
   }
 
   for (auto tmp : red_team_) {
+    if (tmp.expired()) {
+      continue;
+    }
     auto unit = tmp.lock();
     auto boid = unit->GetComponent<BoidComponent>();
     unit->position += boid->velocity * time_elapsed;

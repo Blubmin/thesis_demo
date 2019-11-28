@@ -9,6 +9,7 @@ class Enemy : public pxl::MeshEntity {
  public:
    Enemy();
 
+   float speed;
    float weight;
    bool disable;
 };

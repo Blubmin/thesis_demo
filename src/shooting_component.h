@@ -9,6 +9,8 @@
 class Beachball : public pxl::MeshEntity {
  public:
   Beachball();
+
+  bool spent;
 };
 
 class ShootingComponent : public pxl::Component {

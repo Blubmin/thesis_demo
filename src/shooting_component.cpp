@@ -84,7 +84,7 @@ class BallPopCollisionResponse : public pxl::CollisionResponse {
 
 Beachball::Beachball()
     : pxl::MeshEntity(pxl::MeshLoader::LoadMesh<pxl::OglMesh>(
-          GetMeshPath("beachball.obj"))) {
+          GetMeshPath("beachball.obj"))), spent(false) {
 }
 
 ShootingComponent::ShootingComponent() : ShootingComponent(nullptr) {}
