@@ -6,6 +6,7 @@
 
 #include <ceres/ceres.h>
 #include <glog/logging.h>
+#include <imgui/imgui.h>
 #include <pixel_engine/camera.h>
 #include <pixel_engine/eigen_utilities.h>
 #include <pixel_engine/game.h>
@@ -165,9 +166,11 @@ class TargetCostFunction {
         perspective_transform.cast<T>() * camera_T_world.matrix() * target_pos;
 
     residuals[0] = ((norm_target_pos[0] / norm_target_pos[3]) -
-                   target_projected.cast<T>().x()) * T(weight);
+                    target_projected.cast<T>().x()) *
+                   T(weight);
     residuals[1] = ((norm_target_pos[1] / norm_target_pos[3]) -
-                   target_projected.cast<T>().y()) * T(weight);
+                    target_projected.cast<T>().y()) *
+                   T(weight);
 
     if (norm_target_pos[2] < 0.0) {
       residuals[0] = T(100.0);
@@ -186,8 +189,7 @@ class TargetCostFunction {
   static ceres::CostFunction* Create(
       const Eigen::Matrix4f& perspective_transform,
       const Eigen::Matrix4f& target_transform,
-      Eigen::Vector2f target_projection,
-      float weight) {
+      Eigen::Vector2f target_projection, float weight) {
     ceres::AutoDiffCostFunction<TargetCostFunction, 2, 1, 1, 1, 1,
                                 1>* cost_function =
         new ceres::AutoDiffCostFunction<TargetCostFunction, 2, 1, 1, 1, 1, 1>(
@@ -204,7 +206,9 @@ class TargetCostFunction {
 };
 
 AestheticCameraComponent::AestheticCameraComponent()
-    : constant_residuals(8), constant_parameters(5) {
+    : constant_residuals(8),
+      constant_parameters(5),
+      average_framerate_(100, 0) {
   for (auto& val : constant_residuals) {
     val = false;
   }
@@ -216,6 +220,15 @@ AestheticCameraComponent::AestheticCameraComponent()
 
 void AestheticCameraComponent::Update(float time_elapsed) {
   time_elapsed_ = time_elapsed;
+
+  if (ImGui::IsKeyPressed(GLFW_KEY_R)) {
+    float mean = 0;
+    for (auto val : average_framerate_) {
+      mean += val;
+    }
+    mean /= manager_.lock()->red_team_.size();
+    LOG(INFO) << manager_.lock()->red_team_.size() << ", " << mean;
+  }
 }
 
 void AestheticCameraComponent::SetTarget(std::weak_ptr<pxl::Entity> target) {
@@ -248,7 +261,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
   for (auto tmp : manager_.lock()->red_team_) {
     if (tmp.expired()) {
       continue;
-    } 
+    }
     auto unit = tmp.lock();
     if (unit->disable) {
       continue;
@@ -285,8 +298,9 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
     // Adds cost function for each enemy
     for (int i = 0; i < target_transforms.size(); ++i) {
       auto transform = target_transforms.at(i);
-      auto cost = TargetCostFunction::Create(perspective_transform, transform,
-                                             Eigen::Vector2f(.33, .33), weights.at(i));
+      auto cost =
+          TargetCostFunction::Create(perspective_transform, transform,
+                                     Eigen::Vector2f(-.33, .33), weights.at(i));
       problem.AddResidualBlock(cost, NULL, parameters.data(),
                                parameters.data() + 1, parameters.data() + 2,
                                parameters.data() + 3, parameters.data() + 4);
@@ -294,7 +308,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
 
     // Adds player cost function
     auto player_cost = TargetCostFunction::Create(
-        perspective_transform, player_transform, Eigen::Vector2f(-.33, -.33), 1);
+        perspective_transform, player_transform, Eigen::Vector2f(.33, -.33), 1);
     problem.AddResidualBlock(player_cost, NULL, parameters.data(),
                              parameters.data() + 1, parameters.data() + 2,
                              parameters.data() + 3, parameters.data() + 4);
@@ -324,20 +338,27 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
     options.linear_solver_type = ceres::LinearSolverType::DENSE_QR;
 
     ceres::Solver::Summary summary;
+    auto time = std::chrono::system_clock::now();
     ceres::Solve(options, &problem, &summary);
+    auto duration = std::chrono::system_clock::now() - time;
+    float time_elapsed =
+        std::chrono::duration_cast<
+            std::chrono::duration<float, std::ratio<1, 1>>>(duration)
+            .count();
 
-    /* if (summary.termination_type == ceres::TerminationType::FAILURE) {
-       LOG(ERROR) << summary.FullReport();
-       return;
+    /* if (summary.termination_type ==
+     ceres::TerminationType::FAILURE) { LOG(ERROR) <<
+     summary.FullReport(); return;
      }*/
 
-    pxl::Game::RenderingThread.Post(UpdateTransform(std::move(parameters)));
+    pxl::Game::RenderingThread.Post(
+        UpdateTransform(std::move(parameters), time_elapsed));
   };
 }
 
 std::function<void()> AestheticCameraComponent::UpdateTransform(
-    std::array<double, 5> parameters) {
-  return [&, parameters = parameters]() {
+    std::array<double, 5> parameters, float time_elapsed) {
+  return [&, parameters = parameters, time_elapsed = time_elapsed]() {
     auto player_ptr = std::static_pointer_cast<pxl::Entity>(player_.lock());
     auto camera_ptr = std::static_pointer_cast<pxl::Camera>(owner.lock());
     auto target_ptr = std::static_pointer_cast<pxl::Camera>(target_.lock());
@@ -349,6 +370,9 @@ std::function<void()> AestheticCameraComponent::UpdateTransform(
     // Set the camera rotation to the solved rotations
     camera_ptr->rotation.x() = parameters[3] / M_PI * 180.f;
     camera_ptr->rotation.y() = parameters[4] / M_PI * 180.f;
+
+    // Compute framerate
+    average_framerate_.push_back(time_elapsed);
 
     // Kick off next solve
     pxl::Game::BackgroundThreadPool.Post(RunSolver());

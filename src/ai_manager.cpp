@@ -66,22 +66,27 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
       player_(player),
       red_team_(kTeamSize) {
   for (int32_t i = 0; i < kTeamSize; ++i) {
-    std::shared_ptr<Enemy> enemy = std::make_shared<Enemy>();
-    enemy->position = Eigen::Vector3f(-i, 0, -5);
-    enemy->Bind();
-    // mesh->mesh->materials[0]->diffuse = Eigen::Vector3f(1, i == 0 ? .15 : 0,
-    // 0);
-    enemy->AddComponent(std::make_shared<BoidComponent>());
-    enemy->AddComponent(std::make_shared<pxl::PhysicsComponent>());
-    enemy->AddComponent(std::make_shared<pxl::CapsuleCollider>(
-        .35f, 1.8f, pxl::ColliderComponent::kDynamic));
-    enemy->AddComponent(std::make_shared<DeathCollisionResponse>());
+    auto enemy = CreateEnemy(Eigen::Vector3f(-i, 0, 5));
     red_team_[i] = enemy;
     scene_->AddEntity(enemy);
     if (i == 0) {
       // red_leader_ = mesh;
     }
   }
+}
+
+std::shared_ptr<Enemy> AiManager::CreateEnemy(const Eigen::Vector3f& pos) {
+  std::shared_ptr<Enemy> enemy = std::make_shared<Enemy>();
+  enemy->position = pos;
+  enemy->Bind();
+  // mesh->mesh->materials[0]->diffuse = Eigen::Vector3f(1, i == 0 ? .15 : 0,
+  // 0);
+  enemy->AddComponent(std::make_shared<BoidComponent>());
+  enemy->AddComponent(std::make_shared<pxl::PhysicsComponent>());
+  enemy->AddComponent(std::make_shared<pxl::CapsuleCollider>(
+      .35f, 1.8f, pxl::ColliderComponent::kDynamic));
+  enemy->AddComponent(std::make_shared<DeathCollisionResponse>());
+  return enemy;
 }
 
 Eigen::Vector3f AiManager::Seek(const std::shared_ptr<pxl::Entity> unit,
@@ -198,4 +203,15 @@ void AiManager::Update(float time_elapsed) {
     unit->position += boid->velocity * time_elapsed;
     boid->acceleration *= 0;
   }
+}
+
+void AiManager::Add() {
+  auto enemy = CreateEnemy();
+  scene_->AddEntity(enemy);
+  red_team_.push_back(enemy);
+}
+
+void AiManager::Remove() {
+  scene_->RemoveEntity(red_team_.back().lock());
+  red_team_.pop_back();
 }

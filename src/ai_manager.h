@@ -28,6 +28,7 @@ class AiManager {
   float max_speed;
 
  private:
+  std::shared_ptr<Enemy> CreateEnemy(const Eigen::Vector3f& pos = Eigen::Vector3f::Zero());
   Eigen::Vector3f Seek(const std::shared_ptr<pxl::Entity> unit,
                        const Eigen::Vector3f to_seek) const;
   Eigen::Vector3f ComputeSeparation(
@@ -39,5 +40,7 @@ class AiManager {
   std::shared_ptr<pxl::Entity> player_;
 
  public:
+  void Add();
+  void Remove();
   std::vector<std::weak_ptr<Enemy>> red_team_;
 };

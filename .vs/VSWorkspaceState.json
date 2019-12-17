@@ -2,10 +2,9 @@
   "ExpandedNodes": [
     "",
     "\\pixel_engine",
-    "\\pixel_engine\\pixel_engine",
-    "\\pixel_engine\\pixel_engine\\shaders",
+    "\\pixel_engine\\third_party",
     "\\src"
   ],
-  "SelectedNode": "\\pixel_engine\\pixel_engine\\shaders\\shadow.vert",
+  "SelectedNode": "\\pixel_engine\\pixel_engine",
   "PreviewInSolutionExplorer": false
 }

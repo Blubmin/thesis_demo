@@ -347,8 +347,22 @@ class ThesisDemo : public pxl::Game {
         ImGui::DragFloat(fmt.str().c_str(), &enemy->weight);
         ImGui::PopID();
       }
+      if (ImGui::Button("Add")) {
+        ai_manager->Add();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Remove")) {
+        ai_manager->Remove();
+      }
 
       ImGui::End();
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_EQUAL)) {
+      ai_manager->Add();
+    }
+    if (ImGui::IsKeyPressed(GLFW_KEY_MINUS)) {
+      ai_manager->Remove();
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_SLASH)) {
@@ -441,8 +455,7 @@ class ThesisDemo : public pxl::Game {
     // pixel.w()); ImGui::EndTooltip();
 
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *main_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(0, .5), Eigen::Vector2f(.5, 1)));
+        *main_viewport->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
     //    *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
     // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
@@ -451,13 +464,13 @@ class ThesisDemo : public pxl::Game {
     //         ->diffuse_texture);
     pxl::OglTextureRenderer::GetInstance()->RenderTexture(
         *sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(.5, .5), Eigen::Vector2f(1, 1)));
-    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *sub_sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
-    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *sub_sub_sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
+        Eigen::Rectf(Eigen::Vector2f(.73, .055), Eigen::Vector2f(.98, .285)));
+    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+    //    *sub_sub_viewport->GetColorAttachment(0),
+    //    Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
+    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+    //    *sub_sub_sub_viewport->GetColorAttachment(0),
+    //    Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
 
     if (paused) {
       auto paused_size = ImGui::CalcTextSize("PAUSED") / 2;
