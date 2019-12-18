@@ -334,6 +334,7 @@ class ThesisDemo : public pxl::Game {
       ImGui::DragFloat("Clustering Distance", &ai_manager->clustering_distance);
       ImGui::DragFloat("Clustering", &ai_manager->clustering);
       ImGui::DragFloat("Max Speed", &ai_manager->max_speed);
+      ImGui::Checkbox("Halt", &ai_manager->halt);
 
       for (int i = 0; i < ai_manager->red_team_.size(); ++i) {
         auto tmp = ai_manager->red_team_[i];
@@ -373,6 +374,10 @@ class ThesisDemo : public pxl::Game {
 
     if (ImGui::IsKeyPressed(GLFW_KEY_3)) {
       draw_thirds = !draw_thirds;
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_H)) {
+      ai_manager->halt = !ai_manager->halt;
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_TAB)) {

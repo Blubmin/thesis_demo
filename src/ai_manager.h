@@ -43,4 +43,5 @@ class AiManager {
   void Add();
   void Remove();
   std::vector<std::weak_ptr<Enemy>> red_team_;
+  bool halt;
 };

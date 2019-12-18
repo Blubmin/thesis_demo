@@ -64,7 +64,8 @@ AiManager::AiManager(std::shared_ptr<pxl::Scene> scene,
       max_speed(1),
       scene_(scene),
       player_(player),
-      red_team_(kTeamSize) {
+      red_team_(kTeamSize),
+      halt(false) {
   for (int32_t i = 0; i < kTeamSize; ++i) {
     auto enemy = CreateEnemy(Eigen::Vector3f(-i, 0, 5));
     red_team_[i] = enemy;
@@ -168,7 +169,7 @@ void AiManager::Update(float time_elapsed) {
                   red_team_.end());
 
   for (auto tmp : red_team_) {
-    if (tmp.expired()) {
+    if (tmp.expired() || halt) {
       continue;
     }
     auto unit = tmp.lock();
@@ -195,7 +196,7 @@ void AiManager::Update(float time_elapsed) {
   }
 
   for (auto tmp : red_team_) {
-    if (tmp.expired()) {
+    if (tmp.expired() || halt) {
       continue;
     }
     auto unit = tmp.lock();
