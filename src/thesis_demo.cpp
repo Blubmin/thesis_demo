@@ -6,6 +6,7 @@
 #include "circular_movement_component.h"
 #include "planar_movement_component.h"
 #include "shooting_component.h"
+#include "thirds_renderer.h"
 
 #include <GL/gl3w.h>
 #include <glog/logging.h>
@@ -60,6 +61,7 @@ class ThesisDemo : public pxl::Game {
     hide_windows = false;
     paused = true;
     main_camera = true;
+    draw_thirds = false;
 
     reticle_tex =
         std::make_shared<pxl::OglTexture2d>(GetImagePath("reticle.png"));
@@ -369,6 +371,10 @@ class ThesisDemo : public pxl::Game {
       main_camera = !main_camera;
     }
 
+    if (ImGui::IsKeyPressed(GLFW_KEY_3)) {
+      draw_thirds = !draw_thirds;
+    }
+
     if (ImGui::IsKeyPressed(GLFW_KEY_TAB)) {
       glfwSetInputMode(pxl::Game::State.window, GLFW_CURSOR,
                        glfwGetInputMode(pxl::Game::State.window, GLFW_CURSOR) ==
@@ -402,6 +408,9 @@ class ThesisDemo : public pxl::Game {
             Eigen::Vector2f(.5f + .015 / pxl::Game::State.GetAspectRatio(),
                             .515f)));
     glDisable(GL_BLEND);
+    if (draw_thirds) {
+      ThirdsRenderer::RenderLines();
+    }
     framebuffers[0]->End();
 
     // Draw scene from aesthetic camera
@@ -409,21 +418,24 @@ class ThesisDemo : public pxl::Game {
     aesthetic_camera->Update(time_elapsed);
     scene->camera = aesthetic_camera;
     pxl::SceneRenderer::RenderScene(*scene, framebuffers[1]);
+    if (draw_thirds) {
+      ThirdsRenderer::RenderLines();
+    }
     framebuffers[1]->End();
 
     // Draw scene from 3rd person camera
-    framebuffers[2]->Begin();
-    aesthetic_camera->Update(time_elapsed);
-    scene->camera = behind_camera;
-    pxl::SceneRenderer::RenderScene(*scene, framebuffers[2]);
-    framebuffers[2]->End();
+    //framebuffers[2]->Begin();
+    //aesthetic_camera->Update(time_elapsed);
+    //scene->camera = behind_camera;
+    //pxl::SceneRenderer::RenderScene(*scene, framebuffers[2]);
+    //framebuffers[2]->End();
 
-    // Draw scene from overhead camera
-    framebuffers[3]->Begin();
-    aesthetic_camera->Update(time_elapsed);
-    scene->camera = overhead_camera;
-    pxl::SceneRenderer::RenderScene(*scene, framebuffers[3]);
-    framebuffers[3]->End();
+    //// Draw scene from overhead camera
+    //framebuffers[3]->Begin();
+    //aesthetic_camera->Update(time_elapsed);
+    //scene->camera = overhead_camera;
+    //pxl::SceneRenderer::RenderScene(*scene, framebuffers[3]);
+    //framebuffers[3]->End();
 
     // Draw final results to back buffer
     std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers[0];
@@ -493,6 +505,7 @@ class ThesisDemo : public pxl::Game {
   bool hide_windows;
   bool paused;
   bool main_camera;
+  bool draw_thirds;
   std::vector<std::shared_ptr<pxl::OglFramebuffer>> framebuffers;
   std::shared_ptr<pxl::OglFramebuffer> viewport_framebuffer;
   std::shared_ptr<pxl::Camera> camera;

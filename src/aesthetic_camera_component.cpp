@@ -300,7 +300,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
       auto transform = target_transforms.at(i);
       auto cost =
           TargetCostFunction::Create(perspective_transform, transform,
-                                     Eigen::Vector2f(-.33, .33), weights.at(i));
+                                     Eigen::Vector2f(.33, .33), weights.at(i));
       problem.AddResidualBlock(cost, NULL, parameters.data(),
                                parameters.data() + 1, parameters.data() + 2,
                                parameters.data() + 3, parameters.data() + 4);
@@ -308,7 +308,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
 
     // Adds player cost function
     auto player_cost = TargetCostFunction::Create(
-        perspective_transform, player_transform, Eigen::Vector2f(.33, -.33), 1);
+        perspective_transform, player_transform, Eigen::Vector2f(-.33, -.33), 1);
     problem.AddResidualBlock(player_cost, NULL, parameters.data(),
                              parameters.data() + 1, parameters.data() + 2,
                              parameters.data() + 3, parameters.data() + 4);

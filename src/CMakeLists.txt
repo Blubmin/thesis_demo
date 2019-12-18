@@ -10,6 +10,8 @@ add_executable(thesis_demo
 	shooting_component.cpp
 	shooting_component.h
     thesis_demo.cpp
+	thirds_renderer.h
+	thirds_renderer.cpp
 )
 
 target_link_libraries(thesis_demo
