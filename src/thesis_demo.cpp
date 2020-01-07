@@ -62,6 +62,7 @@ class ThesisDemo : public pxl::Game {
     paused = true;
     main_camera = true;
     draw_thirds = false;
+    render_deferred_split = false;
 
     reticle_tex =
         std::make_shared<pxl::OglTexture2d>(GetImagePath("reticle.png"));
@@ -89,6 +90,7 @@ class ThesisDemo : public pxl::Game {
 
     camera = std::make_shared<pxl::Camera>();
     camera->position += Eigen::Vector3f(0, 1, 10);
+    current_camera = camera;
 
     aesthetic_camera = std::make_shared<pxl::Camera>();
     aesthetic_camera->fov = 45;
@@ -372,8 +374,21 @@ class ThesisDemo : public pxl::Game {
       main_camera = !main_camera;
     }
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_3)) {
+    if (ImGui::IsKeyPressed(GLFW_KEY_T)) {
       draw_thirds = !draw_thirds;
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_1)) {
+      current_camera = camera;
+    }
+    if (ImGui::IsKeyPressed(GLFW_KEY_2)) {
+      current_camera = aesthetic_camera;
+    }
+    if (ImGui::IsKeyPressed(GLFW_KEY_3)) {
+      current_camera = behind_camera;
+    }
+    if (ImGui::IsKeyPressed(GLFW_KEY_4)) {
+      current_camera = overhead_camera;
     }
 
     if (ImGui::IsKeyPressed(GLFW_KEY_H)) {
@@ -401,18 +416,25 @@ class ThesisDemo : public pxl::Game {
       show_fps = !show_fps;
     }
 
+    if (ImGui::IsKeyDown(GLFW_KEY_LEFT_CONTROL) &&
+        ImGui::IsKeyPressed(GLFW_KEY_D)) {
+      render_deferred_split = !render_deferred_split;
+    }
+
     // Draw scene from primary camera
-    scene->camera = camera;
+    scene->camera = current_camera;
     pxl::SceneRenderer::RenderScene(*scene, framebuffers[0]);
-    glEnable(GL_BLEND);
-    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *reticle_tex,
-        Eigen::Rectf(
-            Eigen::Vector2f(.5f - .015 / pxl::Game::State.GetAspectRatio(),
-                            .485f),
-            Eigen::Vector2f(.5f + .015 / pxl::Game::State.GetAspectRatio(),
-                            .515f)));
-    glDisable(GL_BLEND);
+    if (current_camera == camera) {
+      glEnable(GL_BLEND);
+      pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+          *reticle_tex,
+          Eigen::Rectf(
+              Eigen::Vector2f(.5f - .015 / pxl::Game::State.GetAspectRatio(),
+                              .485f),
+              Eigen::Vector2f(.5f + .015 / pxl::Game::State.GetAspectRatio(),
+                              .515f)));
+      glDisable(GL_BLEND);
+    }
     if (draw_thirds) {
       ThirdsRenderer::RenderLines();
     }
@@ -429,18 +451,18 @@ class ThesisDemo : public pxl::Game {
     framebuffers[1]->End();
 
     // Draw scene from 3rd person camera
-    //framebuffers[2]->Begin();
-    //aesthetic_camera->Update(time_elapsed);
-    //scene->camera = behind_camera;
-    //pxl::SceneRenderer::RenderScene(*scene, framebuffers[2]);
-    //framebuffers[2]->End();
+    // framebuffers[2]->Begin();
+    // aesthetic_camera->Update(time_elapsed);
+    // scene->camera = behind_camera;
+    // pxl::SceneRenderer::RenderScene(*scene, framebuffers[2]);
+    // framebuffers[2]->End();
 
     //// Draw scene from overhead camera
-    //framebuffers[3]->Begin();
-    //aesthetic_camera->Update(time_elapsed);
-    //scene->camera = overhead_camera;
-    //pxl::SceneRenderer::RenderScene(*scene, framebuffers[3]);
-    //framebuffers[3]->End();
+    // framebuffers[3]->Begin();
+    // aesthetic_camera->Update(time_elapsed);
+    // scene->camera = overhead_camera;
+    // pxl::SceneRenderer::RenderScene(*scene, framebuffers[3]);
+    // framebuffers[3]->End();
 
     // Draw final results to back buffer
     std::shared_ptr<pxl::OglFramebuffer> main_viewport = framebuffers[0];
@@ -452,43 +474,47 @@ class ThesisDemo : public pxl::Game {
       std::swap(main_viewport, sub_viewport);
     }
 
-    // auto mouse_pos =
-    //     ImGui::GetMousePos() *
-    //     ImVec2(pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
-    //                ->GetWidth(),
-    //            pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
-    //                ->GetHeight()) /
-    //     ImVec2(pxl::Game::State.window_width,
-    //     pxl::Game::State.window_height);
-    // mouse_pos.y =
-    //     pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)->GetHeight()
-    //     - mouse_pos.y;
-    //
-    // auto pixel =
-    //     pxl::SceneRenderer::shadow_buffer_->ReadPixel(mouse_pos.x,
-    //     mouse_pos.y);
-    // ImGui::BeginTooltip();
-    // ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(),
-    // pixel.w()); ImGui::EndTooltip();
+    if (!render_deferred_split) {
+      // auto mouse_pos =
+      //     ImGui::GetMousePos() *
+      //     ImVec2(pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+      //                ->GetWidth(),
+      //            pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)
+      //                ->GetHeight()) /
+      //     ImVec2(pxl::Game::State.window_width,
+      //     pxl::Game::State.window_height);
+      // mouse_pos.y =
+      //     pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0)->GetHeight()
+      //     - mouse_pos.y;
+      //
+      // auto pixel =
+      //     pxl::SceneRenderer::shadow_buffer_->ReadPixel(mouse_pos.x,
+      //     mouse_pos.y);
+      // ImGui::BeginTooltip();
+      // ImGui::Text("(%f, %f, %f, %f)", pixel.x(), pixel.y(), pixel.z(),
+      // pixel.w()); ImGui::EndTooltip();
 
-    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *main_viewport->GetColorAttachment(0));
-    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //    *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
-    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //    *std::dynamic_pointer_cast<pxl::OglMaterial>(
-    //         block->GetComponent<pxl::OglMesh>()->materials[0])
-    //         ->diffuse_texture);
-    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-        *sub_viewport->GetColorAttachment(0),
-        Eigen::Rectf(Eigen::Vector2f(.73, .055), Eigen::Vector2f(.98, .285)));
-    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //    *sub_sub_viewport->GetColorAttachment(0),
-    //    Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
-    // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
-    //    *sub_sub_sub_viewport->GetColorAttachment(0),
-    //    Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
+      pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+          *main_viewport->GetColorAttachment(0));
+      // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+      //    *pxl::SceneRenderer::shadow_buffer_->GetColorAttachment(0));
+      // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+      //    *std::dynamic_pointer_cast<pxl::OglMaterial>(
+      //         block->GetComponent<pxl::OglMesh>()->materials[0])
+      //         ->diffuse_texture);
+      pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+          *sub_viewport->GetColorAttachment(0),
+          Eigen::Rectf(Eigen::Vector2f(.73, .055), Eigen::Vector2f(.98, .285)));
+      // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+      //    *sub_sub_viewport->GetColorAttachment(0),
+      //    Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
+      // pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+      //    *sub_sub_sub_viewport->GetColorAttachment(0),
+      //    Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
 
+    } else {
+      RenderDeferredSplit();
+    }
     if (paused) {
       auto paused_size = ImGui::CalcTextSize("PAUSED") / 2;
       auto window_size =
@@ -507,12 +533,29 @@ class ThesisDemo : public pxl::Game {
     }
   }
 
+  void RenderDeferredSplit() {
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *pxl::SceneRenderer::g_buffer_->GetColorAttachment(0),
+        Eigen::Rectf(Eigen::Vector2f(0, .5), Eigen::Vector2f(.5, 1)));
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *pxl::SceneRenderer::g_buffer_->GetColorAttachment(1),
+        Eigen::Rectf(Eigen::Vector2f(.5, .5), Eigen::Vector2f(1, 1)));
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *pxl::SceneRenderer::g_buffer_->GetColorAttachment(2),
+        Eigen::Rectf(Eigen::Vector2f(0, 0), Eigen::Vector2f(.5, .5)));
+    pxl::OglTextureRenderer::GetInstance()->RenderTexture(
+        *pxl::SceneRenderer::ssao_buffer_->GetColorAttachment(0),
+        Eigen::Rectf(Eigen::Vector2f(.5, 0), Eigen::Vector2f(1, .5)));
+  }
+
   bool hide_windows;
   bool paused;
   bool main_camera;
   bool draw_thirds;
+  bool render_deferred_split;
   std::vector<std::shared_ptr<pxl::OglFramebuffer>> framebuffers;
   std::shared_ptr<pxl::OglFramebuffer> viewport_framebuffer;
+  std::shared_ptr<pxl::Camera> current_camera;
   std::shared_ptr<pxl::Camera> camera;
   std::shared_ptr<pxl::Camera> aesthetic_camera;
   std::shared_ptr<pxl::Camera> behind_camera;
