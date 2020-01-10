@@ -32,6 +32,8 @@ class AestheticCameraComponent : public pxl::Component {
   std::weak_ptr<AiManager> manager_;
   float time_elapsed_;
   boost::circular_buffer<float> average_framerate_;
+  Eigen::Vector2f player_target;
+  Eigen::Vector2f enemy_target;
 
   boost::optional<Eigen::Vector3f> prev_player_pos_;
 };

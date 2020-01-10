@@ -112,9 +112,9 @@ class DistanceCostFunction {
   bool operator()(const T* const x, const T* const y, const T* const z,
                   T* residuals) const {
     residuals[0] =
-        (Eigen::Vector3<T>(*x, *y, *z) - target_position.cast<T>()).norm() -
-        T(target_distance);
-    residuals[0] *= residuals[0];
+        (Eigen::Vector3<T>(*x, *y, *z) - target_position.cast<T>()).squaredNorm() -
+        T(target_distance * target_distance);
+    // residuals[0] *= residuals[0];
 
     return true;
   }
@@ -208,7 +208,9 @@ class TargetCostFunction {
 AestheticCameraComponent::AestheticCameraComponent()
     : constant_residuals(8),
       constant_parameters(5),
-      average_framerate_(100, 0) {
+      average_framerate_(100, 0),
+      player_target(-.33, -.33), 
+      enemy_target(.33, .33) {
   for (auto& val : constant_residuals) {
     val = false;
   }
@@ -228,6 +230,11 @@ void AestheticCameraComponent::Update(float time_elapsed) {
     }
     mean /= manager_.lock()->red_team_.size();
     LOG(INFO) << manager_.lock()->red_team_.size() << ", " << mean;
+  }
+
+  if (ImGui::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && ImGui::IsKeyPressed(GLFW_KEY_F)) {
+    player_target.x() *= -1;
+    enemy_target.x() *= -1;
   }
 }
 
@@ -272,7 +279,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
     weights.push_back(unit->weight);
   }
 
-  return [=]() mutable {
+  return [=, player_target = player_target, enemy_target = enemy_target]() mutable {
     ceres::Problem problem;
 
     std::array<double, 5> parameters;
@@ -281,11 +288,11 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
     axis = axis * rot.angle();
 
     // Improve camera initialization by adding in player shift
-    if (prev_player_pos_) {
+    /*if (prev_player_pos_) {
       camera_transform.block<3, 1>(0, 3) =
           Eigen::GetPosition(camera_transform) +
           (Eigen::GetPosition(player_transform) - prev_player_pos_.get());
-    }
+    }*/
 
     auto camera_pos = Eigen::GetPosition(camera_transform);
 
@@ -300,7 +307,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
       auto transform = target_transforms.at(i);
       auto cost =
           TargetCostFunction::Create(perspective_transform, transform,
-                                     Eigen::Vector2f(.33, .33), weights.at(i));
+                                     enemy_target, weights.at(i));
       problem.AddResidualBlock(cost, NULL, parameters.data(),
                                parameters.data() + 1, parameters.data() + 2,
                                parameters.data() + 3, parameters.data() + 4);
@@ -308,7 +315,7 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
 
     // Adds player cost function
     auto player_cost = TargetCostFunction::Create(
-        perspective_transform, player_transform, Eigen::Vector2f(-.33, -.33), 1);
+        perspective_transform, player_transform, player_target, 1);
     problem.AddResidualBlock(player_cost, NULL, parameters.data(),
                              parameters.data() + 1, parameters.data() + 2,
                              parameters.data() + 3, parameters.data() + 4);
@@ -319,9 +326,20 @@ std::function<void()> AestheticCameraComponent::RunSolver() {
     problem.AddResidualBlock(distance_cost, NULL, parameters.data(),
                              parameters.data() + 1, parameters.data() + 2);
 
+    //// Adds cost function for distance to prevframe
+    //auto camera_cost =
+    //    DistanceCostFunction::Create(camera_pos, 0);
+    //problem.AddResidualBlock(camera_cost, NULL, parameters.data(),
+    //                         parameters.data() + 1, parameters.data() + 2);
+
     // Keep rotations from flipping the camera upside-down
     problem.SetParameterLowerBound(parameters.data() + 3, 0, -M_PI_2);
     problem.SetParameterUpperBound(parameters.data() + 3, 0, M_PI_2);
+
+    //// Keep rotations from flipping in circles
+    //problem.SetParameterLowerBound(parameters.data() + 4, 0,
+    //                               parameters[4] - M_PI );
+    //problem.SetParameterUpperBound(parameters.data() + 4, 0, parameters[4] + M_PI);
 
     for (int i = 0; i < constant_parameters.size(); ++i) {
       const auto val = constant_parameters[i];

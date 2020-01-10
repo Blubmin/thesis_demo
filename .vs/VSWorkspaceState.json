@@ -2,9 +2,10 @@
   "ExpandedNodes": [
     "",
     "\\pixel_engine",
-    "\\pixel_engine\\third_party",
+    "\\pixel_engine\\pixel_engine",
+    "\\pixel_engine\\pixel_engine\\shaders",
     "\\src"
   ],
-  "SelectedNode": "\\pixel_engine\\pixel_engine",
+  "SelectedNode": "\\pixel_engine\\pixel_engine\\shaders\\mesh_deferred.frag",
   "PreviewInSolutionExplorer": false
 }
